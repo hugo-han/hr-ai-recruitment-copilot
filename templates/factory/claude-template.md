@@ -1,166 +1,58 @@
 # Claude Runtime Context
 
-> OPC AI Software Factory 自动生成文件
+> OPC AI Software Factory Runtime入口
 
----
+## Project Identity
 
-# 项目信息
-
-项目名称：
-
+名称:
 {{PROJECT_NAME}}
 
-
-项目描述：
-
+描述:
 {{PROJECT_DESCRIPTION}}
 
+## Context Registry
 
----
-
-# AI Context Registry
-
-## 企业上下文
-
-路径：
-
+企业规则:
 .factory/context/enterprise.md
 
-
-用途：
-
-定义企业级开发规范、技术约束和治理规则。
-
-
----
-
-## 项目上下文
-
-路径：
-
+项目规则:
 .factory/context/project.md
 
-
-用途：
-
-定义当前项目目标、范围和业务背景。
-
-
----
-
-## 工作流上下文
-
-路径：
-
+流程规则:
 .factory/context/workflow.md
 
+## Agent Registry
 
-用途：
-
-定义AI Agent协作流程。
-
-
----
-
-# Agent Registry
-
-
-## Product Agent
-
-路径：
-
+产品:
 .factory/agents/product-agent.md
 
-
-职责：
-
-需求分析、PRD生成、业务拆解。
-
-
----
-
-## Architect Agent
-
-路径：
-
+架构:
 .factory/agents/architect-agent.md
 
-
-职责：
-
-系统设计、架构决策、技术方案。
-
-
----
-
-## Developer Agent
-
-路径：
-
+开发:
 .factory/agents/developer-agent.md
 
-
-职责：
-
-代码实现、重构和优化。
-
-
----
-
-## QA Agent
-
-路径：
-
+测试:
 .factory/agents/qa-agent.md
 
-
-职责：
-
-测试设计、质量验证。
-
-
----
-
-## Release Agent
-
-路径：
-
+发布:
 .factory/agents/release-agent.md
 
+## Execution Rules
 
-职责：
+1. 执行任务前读取项目Context。
+2. 根据任务类型选择对应Agent。
+3. Agent详细规则按需加载。
+4. CLAUDE.md只保存入口信息。
+5. 大型任务拆分为多Agent协作。
 
-发布管理、版本控制。
+## Loading Strategy
 
-
----
-
-# AI Execution Rules
-
-
-1. 所有开发活动必须遵循项目上下文。
-
-2. Agent执行前必须读取对应角色定义。
-
-3. 大型任务必须拆分为多个Agent协作流程。
-
-4. CLAUDE.md只作为入口索引，不存储详细知识。
-
-
----
-
-# Context Loading Strategy
-
-
-默认加载：
-
+默认加载:
 - enterprise.md
 - project.md
 - workflow.md
 
-
-按需加载：
-
+按需加载:
 - agents/*.md
 - docs/*.md
-
