@@ -10,7 +10,10 @@ param(
     [string]$TargetPath="./projects",
 
     [Parameter(Mandatory=$false)]
-    [string]$FactoryPath="../"
+    [string]$FactoryPath="../",
+
+    [Parameter(Mandatory=$false)]
+    [switch]$BuildClaudeContext
 )
 
 # 增加模板复制函数
@@ -101,14 +104,27 @@ Copy-Item `
 
 Write-Host "Injected github template"
 
-# 注入Claude模板
+# ==================================
+# Inject Factory Context and Agents
+# ==================================
+
+$FactoryTemplatePath = Join-Path `
+$FactoryPath "templates/factory"
+
+
+$ProjectFactoryPath = Join-Path `
+$ProjectPath ".factory"
+
+
 Copy-Item `
--Path (Join-Path $FactoryPath "templates/claude/*") `
--Destination $ProjectPath `
+-Path $FactoryTemplatePath `
+-Destination $ProjectFactoryPath `
 -Recurse `
 -Force
 
-Write-Host "Injected claude template"
+
+Write-Host "Factory context injected"
+
 
 
 # README
@@ -150,7 +166,16 @@ before development.
 
 
 # Git初始化
+if($BuildClaudeContext)
+{
 
+    Write-Host "Building Claude Context..."
+
+
+    & "$PSScriptRoot\build-claude-context.ps1" `
+    -ProjectPath $ProjectPath
+
+}
 Set-Location $ProjectPath
 
 
