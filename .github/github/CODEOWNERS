@@ -1,0 +1,46 @@
+# OPC AI Software Factory CODEOWNERS Template
+
+
+# 产品文档
+
+/docs/product/ @product-owner
+
+
+# 架构设计
+
+/docs/architecture/ @architect-owner
+
+
+# 测试文档
+
+/docs/test/ @qa-owner
+
+
+# 发布文档
+
+/docs/release/ @release-owner
+
+
+# 前端代码
+
+/frontend/ @developer-owner
+
+
+# 后端代码
+
+/backend/ @developer-owner
+
+
+# 数据库变更
+
+/database/ @architect-owner
+
+
+# CI/CD
+
+/.github/workflows/ @release-owner
+
+
+# 全局配置
+
+* @architect-owner
