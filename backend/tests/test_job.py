@@ -101,3 +101,32 @@ def test_draft_writes_audit(client, db_session):
     logs = db_session.query(AiCallLog).filter_by(agent_type="JobAgent").all()
     assert len(logs) == 1
     assert logs[0].status == "success"
+
+
+# ── RBAC 接口层测试 ────────────────────────────────────────────────────────
+
+
+def _rbac_login(client, db, username, role, password="x"):
+    """创建指定角色用户 → 登录 → 返回 token。"""
+    db.add(User(username=username, password_hash=hash_password(password), name=username, role=role))
+    db.commit()
+    resp = client.post("/api/auth/login", json={"username": username, "password": password})
+    assert resp.status_code == 200
+    return resp.json()["data"]["access_token"]
+
+
+def test_rbac_job_draft_interviewer_403(client, db_session):
+    """INTERVIEWER 无权草拟 JD -> 403 (TC-309)。"""
+    token = _rbac_login(client, db_session, "rbac_job_int", Role.INTERVIEWER)
+    resp = client.post("/api/jobs/draft", json={"title": "x", "level": "P5", "business_req": ""},
+                       headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 403
+
+
+def test_rbac_job_draft_hr_200(client, db_session):
+    """HR 可草拟 JD——但接口需 job_service 的 orchestrator 依赖，本次仅验证角色门禁放行。"""
+    token = _rbac_login(client, db_session, "rbac_job_hr", Role.HR)
+    resp = client.post("/api/jobs/draft", json={"title": "x", "level": "P5", "business_req": ""},
+                       headers={"Authorization": f"Bearer {token}"})
+    # 接口依赖真实 LLM（huawei/mock），未注入 orchestrator 时会 503；角色门禁应放行 → 200 或 503（LLM），不应 403
+    assert resp.status_code in (200, 503)

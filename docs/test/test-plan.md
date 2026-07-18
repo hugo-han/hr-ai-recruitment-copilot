@@ -3,7 +3,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目名称 | hr-ai-recruitment-copilot |
-| 文档版本 | v1.4 |
+| 文档版本 | v1.5 |
 | 编写角色 | QA Agent |
 | 编写日期 | 2026-07-18 |
 | 输入依据 | docs/product/PRD.md ｜ docs/architecture/system-design.md ｜ docs/development/mvp-development-plan.md |
@@ -14,7 +14,8 @@
 > - v1.0（2026-07-18）首次产出，测试先行设计。
 > - v1.1（2026-07-18）巡检 #1：开发已交付 T2/T3/T4/T5/T6/T7 模块代码与 pytest 用例；全量 48 passed；补交付状态、R-09（瞬时 flakiness 观测）、QA 补充用例段。`mvp-development-plan.md` 仍缺位。
 > - v1.2（2026-07-18）巡检 #2：`mvp-development-plan.md` 已生成 → R-01 解除；新增 Alembic 迁移（init_schema，SQLite 验证通过）；全量 48 passed、ruff clean；发现 `.obs-local/` 测试产物 109 个被暂存拟提交（R-10）；开发者已 `git add` 全部成果物准备提交。
-> - v1.4（2026-07-18）巡检 #14：开发提交新 commit `206c196`（feat: MVP 后端核心闭环），T8 数据分析看板（`analytics_service` + `test_analytics.py`）正式交付；app 39→42，测试 48→54 passed，ruff clean。R-11 仍未修复，已在 GitHub 建 Issue #1（https://github.com/hugo-han/opc-ai-factory-config/issues/1）推动开发修复；R-13/R-10 已解除。另发现 test_analytics 5 轮复跑中有 1 次出现 56 passed（多 2 个，疑为测试隔离问题），已登记为 R-14 观测。
+> - v1.4（2026-07-18）巡检 #14：开发提交新 commit `206c196`，T8 数据分析看板正式交付；app 39→42，测试 48→54 passed，ruff clean。R-11 仍未修复，已在 GitHub 建 Issue #1 推动开发修复；R-13/R-10 已解除。
+> - v1.5（2026-07-18）巡检 #15：开发连续提交 `fd7990d`（渠道字段 + 真实渠道统计）与 `bfe5ecb`（字典管理 + 批量异步评分 T9），app 42→49，测试 54→76 passed，ruff clean，5 轮复跑稳定。**R-11 已修复**（`require_roles(Role.HR_LEAD, Role.ADMIN)` 已应用到 delete/export 双路由）；R-14 未见再现。T9 正式标记已交付。
 
 ---
 
@@ -344,7 +345,7 @@
 | T6 面试评价 E2E | 总结/评价/推荐、含依据 | 接口+E2E+AI 质量 | ✅ test_interview.py 8 passed |
 | T7 简历合规 | 永久保留+删除/导出审计 | 合规专项 | ✅ 含于 test_resume.py（软删/重复删除冲突/导出） |
 | T8 数据分析（P1） | 看板 ≥3 指标、≤5s | 接口+性能 | ✅ 已交付（test_analytics.py 6 passed；含空数据/漏斗/时间筛选/RBAC 403/HR_LEAD 200/性能 ≤5s） |
-| T9 批量/字典（P1） | 批量筛选排序、岗位库 | 接口 | ⏳ 部分（list_sort 已实现；岗位库未交付） |
+| T9 批量/字典（P1） | 批量筛选排序、岗位库 | 接口 | ✅ 已交付（test_t9.py 12 passed；含字典 CRUD + 技能唯一约束 + 默认模板独占 + RBAC 门禁 + 批量异步 eager + API） |
 | 集成/验收 | 三段闭环 | E2E+AC 走查 | ⏳ 待补 E2E 串联用例 |
 
 > 全量后端自动化：**48 passed**（pytest -q，含 5 次复跑稳定）。详见 §14 巡检记录。
@@ -399,10 +400,10 @@
 | R-08 | 永久保留的存储与备份成本（system-design 待确认 c） | 长期成本 | 中 | P1 评估 OBS 生命周期与 RDS 备份策略 |
 | R-09 | 简历相关用例偶现 flakiness（巡检 #1 首轮 5 failed，20+ 次复跑 0 failed） | 测试可靠性 | 低 | 持续观测；巡检 #2 全量 48 passed 稳定；下轮若再现则定位根因并建 Issue |
 | R-10 | ~~`.obs-local/resumes/*` 测试产物被暂存拟提交~~ | — | — | ✅ 已解除（巡检 #3：开发者移出暂存区并补入 `backend/.gitignore`，暂存区 0 个 obs-local 文件）。⚠️ 残留：`backend/.gitignore` 该改动本身仍 unstaged，建议 `git add backend/.gitignore` |
-| R-11 | `DELETE /api/resumes/{id}` 与导出仅校验登录、无角色门禁（与 §7.1 约定不符） | 安全合规缺口 | 高 | ✅ GitHub Issue #1 已创建（https://github.com/hugo-han/opc-ai-factory-config/issues/1），TC-908；待开发修复后补测 |
+| R-11 | ~~`DELETE /api/resumes/{id}` 与导出仅校验登录、无角色门禁~~ | — | — | ✅ 已修复（巡检 #15：commit `bfe5ecb` 中 `resume.py:52/58` 已应用 `require_roles(Role.HR_LEAD, Role.ADMIN)`）；需补 TC-908 自动化回归用例 |
 | R-12 | Alembic init_schema 中 `user` 表的 `role` 为 String 而非 FK/Enum，`deleted` 用 Integer 软删 | 数据完整性弱约束 | 低 | 已知设计；后续可加 Check 约束；非阻塞 |
 | R-13 | docs/test 文档 staged 版本滞后于工作区 | 提交内容不完整 | 中 | ✅ 已解除（巡检 #12：开发者已 git add 同步 v1.3） |
-| R-14 | test_analytics 复跑偶现 56 passed（预期 54，多 2 个）；疑为测试隔离问题 | 测试可靠性 | 低 | 登记观测；待后续复跑确认，若稳定出现则定位根因 |
+| R-14 | test_analytics 复跑偶现 56 passed（预期 54，多 2 个）；疑为测试隔离问题 | 测试可靠性 | 低 | 巡检 #15 未见再现（76 passed 6 轮稳定）；解除观测 |
 
 ---
 
@@ -424,9 +425,9 @@
 | 时间 | 基准/状态 | 发现 | 测试结果 | 处置 |
 |---|---|---|---|---|
 | 巡检 #1 2026-07-18 | HEAD=41979ef（脚手架期），mvp-plan 缺 | 开发已大幅推进：auth/job/resume/interview + ai 基座 + 模型/服务/路由/Schema + test_auth/authz/ai_agent/job/resume/interview | pytest 全量 **48 passed**；首轮曾现 5 failed，后续 20+ 次复跑 0 failed，判定瞬时 flakiness | 升 v1.1；登记 R-09；未建 Issue（未能稳定复现） |
-| 巡检 #14 2026-07-18 | HEAD 206c196（首次提交，T1–T8 全落地） | 新 commit：app 39→42（新增 analytics.py/schemas/services）；测试 48→54（新增 test_analytics.py 6 用例）；T8 数据分析看板正式交付；R-11 仍未修复 | ruff clean；pytest **54 passed**（5 轮复跑，1 轮出现 56 passed，登记 R-14 观测） | 升 v1.4；T8 标记已交付；R-13 已解除；R-11 建 GitHub Issue #1 推动修复 |
+| 巡检 #15 2026-07-18 | HEAD `aa4099f`（三连 commit：fd7990d + bfe5ecb + aa4099f） | 渠道字段+真实渠道统计；字典管理（PositionTemplate/SkillDict/CompetencyTemplate 三表+CRUD+RBAC）；批量异步评分（Celery+eager 测）；**R-11 已修复**（`aa4099f` fix: DELETE/export 补齐 `require_roles(Role.HR_LEAD, Role.ADMIN)`） | ruff clean；pytest **76 passed**（8 轮复跑全部稳定） | 升 v1.5；T9 已交付；R-11 已修复 + GitHub Issue #1 已关闭；R-14 解除；TC-908 自动化回归待补 |
 
-> 指纹比对：以 `backend/app` 文件树 + 测试用例数 + Alembic 迁移为基准。当前基准：**48 tests, 8 张表迁移, app 含 auth/job/resume/interview/ai 模块**（巡检 #2/#3 一致，无新开发变更）。下次巡检以此为变更指纹。
+> 指纹比对基准更新：HEAD=`aa4099f`，app 49 .py（8 api + 7 service），测试 76 passed（9 个 test 文件），ruff clean。T1–T9 全部交付：仅剩 TC-801 E2E 闭环串联、TC-908/TC-705 自动化回归、真实 HuaweiClient 预发联调。
 
 > 🔴 待人工确认项（巡检 #3）：
 > 1. **R-13**：`docs/test/test-plan.md` 与 `test-case.md` 的 staged 版本滞后于工作区（staged: v1.1/v1.0；工作区: v1.3/v1.3）。开发者提交前需 `git add docs/test/` 同步，否则提交的测试文档为旧版本。

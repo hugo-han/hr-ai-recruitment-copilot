@@ -106,3 +106,23 @@ def test_evaluate_writes_audit(db_session):
 def test_create_via_api_requires_token(client, db_session):
     resp = client.post("/api/interviews", json={"record_text": "x"})
     assert resp.status_code == 401
+
+
+# ── RBAC 接口层测试 ────────────────────────────────────────────────────────
+
+
+def _rbac_login(client, db, username, role, password="x"):
+    """创建指定角色用户 → 登录 → 返回 token。"""
+    db.add(User(username=username, password_hash=hash_password(password), name=username, role=role))
+    db.commit()
+    resp = client.post("/api/auth/login", json={"username": username, "password": password})
+    assert resp.status_code == 200
+    return resp.json()["data"]["access_token"]
+
+
+def test_rbac_interview_create_hr_200(client, db_session):
+    """HR 可录入面试记录（INTERVIEWER+ 包含 HR）-> 200。"""
+    token = _rbac_login(client, db_session, "rbac_iv_hr", Role.HR)
+    resp = client.post("/api/interviews", json={"record_text": "x"},
+                       headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200

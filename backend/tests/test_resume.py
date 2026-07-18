@@ -261,3 +261,21 @@ def test_rbac_export_admin_200(client, db_session):
     resp = client.get(f"/api/resumes/{up['resume_id']}/export", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
     assert resp.json()["code"] == 0
+
+
+# ── UPLOAD & ANALYZE RBAC ──
+
+
+def test_rbac_upload_interviewer_403(client, db_session):
+    """INTERVIEWER 无权上传简历 -> 403。"""
+    token = _api_login(client, db_session, "rbac_up_int", Role.INTERVIEWER)
+    resp = client.post("/api/resumes/upload", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 403
+
+
+def test_rbac_analyze_interviewer_403(client, db_session):
+    """INTERVIEWER 无权做简历评分 -> 403。"""
+    token = _api_login(client, db_session, "rbac_an_int", Role.INTERVIEWER)
+    resp = client.post("/api/resumes/1/analyze", json={"job_id": 1},
+                       headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 403

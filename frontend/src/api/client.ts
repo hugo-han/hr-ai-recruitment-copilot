@@ -1,7 +1,6 @@
 import axios from "axios";
 
-// 统一请求实例：附加 Authorization、解包统一响应结构
-export const api = axios.create({ baseURL: "/api", timeout: 30000 });
+const api = axios.create({ baseURL: "/api", timeout: 30000 });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
@@ -22,9 +21,13 @@ api.interceptors.response.use(
     }
     return resp;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
 );
 
-export interface ApiResult<T> {
-  data: T;
-}
+export { api };

@@ -25,7 +25,7 @@ async def upload(
     job_id: int | None = Form(None),
     channel: str | None = Form(None),
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_roles(Role.HR, Role.HR_LEAD, Role.ADMIN)),
 ) -> dict:
     content = await file.read()
     return ok(
@@ -37,7 +37,7 @@ async def upload(
 
 @router.post("/{resume_id}/analyze")
 def analyze(resume_id: int, req: ResumeAnalyzeRequest, db: Session = Depends(get_db),
-            user: User = Depends(get_current_user)) -> dict:
+            user: User = Depends(require_roles(Role.HR, Role.HR_LEAD, Role.ADMIN))) -> dict:
     return ok(resume_service.analyze(resume_id, req.job_id, db, operator_id=user.id))
 
 
@@ -60,7 +60,8 @@ def export(resume_id: int, db: Session = Depends(get_db),
 
 
 @router.post("/batch-analyze")
-def batch_analyze(req: BatchAnalyzeRequest, user: User = Depends(get_current_user)) -> dict:
+def batch_analyze(req: BatchAnalyzeRequest,
+                  user: User = Depends(require_roles(Role.HR, Role.HR_LEAD, Role.ADMIN))) -> dict:
     """批量异步评分：派发 Celery Task，立即返回 task_ids 供轮询。"""
     from app.tasks.resume_tasks import batch_analyze_resumes
 

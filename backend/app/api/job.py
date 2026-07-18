@@ -2,9 +2,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.common.auth import get_current_user
+from app.common.auth import get_current_user, require_roles
 from app.common.response import ok
 from app.db import get_db
+from app.models.enums import Role
 from app.models.user import User
 from app.schemas.job import JobDraftRequest, JobUpdateRequest
 from app.services import job_service
@@ -13,7 +14,8 @@ router = APIRouter(prefix="/jobs", tags=["job"])
 
 
 @router.post("/draft")
-def draft(req: JobDraftRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
+def draft(req: JobDraftRequest, db: Session = Depends(get_db),
+          user: User = Depends(require_roles(Role.HR, Role.HR_LEAD, Role.ADMIN))) -> dict:
     """AI 生成 JD / 岗位画像 / 技能要求。"""
     return ok(job_service.draft_job(req, db, operator_id=user.id))
 
