@@ -162,6 +162,37 @@ class MockClient:
         self._responses[key] = payload
         return self
 
+    def add_defaults(self) -> "MockClient":
+        """补齐默认响应，使 MockClient 在未配置关键词时也能返回符合预期的输出。
+        覆盖 JD 生成 / 简历分析 / 面试评价三个核心场景。
+        """
+        defaults: dict[str, Any] = {
+            "岗位": {
+                "jd": {"title": "默认岗位", "responsibilities": ["负责相关开发工作"], "requirements": ["本科及以上学历"]},
+                "job_profile": {"方向": "通用", "年限": "3-5年"},
+                "skill_requirements": ["团队协作", "沟通能力"],
+                "rationale": "基于岗位名称与等级自动推导",
+            },
+            "简历": {
+                "match_score": 75,
+                "advantages": ["经验匹配"],
+                "risks": ["无相关风险提示"],
+                "rationale": {"hit": ["团队协作"], "miss": []},
+            },
+            "面试": {
+                "summary": "候选人整体表现尚可",
+                "capability_eval": {
+                    "专业技能": "符合", "沟通表达": "良好",
+                    "解决问题": "一般", "团队协作": "良好", "学习能力": "符合",
+                },
+                "recommendation": "推荐",
+                "rationale": {"专业技能": "符合要求"},
+            },
+        }
+        for k, v in defaults.items():
+            self._responses.setdefault(k, v)
+        return self
+
     @staticmethod
     def _match_key(text: str) -> str:
         # 顺序敏感：先匹配更具体的关键词，避免简历提示词中的"岗位"误命中岗位模板
@@ -172,10 +203,10 @@ class MockClient:
 
 
 def get_llm_client() -> LLMClient:
-    """按 settings.llm_provider 返回客户端实例。"""
+    """按 settings.llm_provider 返回客户端实例。mock 模式下自动补齐默认响应。"""
     provider = settings.llm_provider.lower()
     if provider == "mock":
-        return MockClient()
+        return MockClient().add_defaults()
     if provider == "huawei":
         return HuaweiClient()
     raise AppError(code=500, message=f"未知 LLM provider: {provider}", status_code=500)
