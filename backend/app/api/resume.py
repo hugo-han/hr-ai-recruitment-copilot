@@ -16,11 +16,16 @@ router = APIRouter(prefix="/resumes", tags=["resume"])
 async def upload(
     file: UploadFile = File(...),
     job_id: int | None = Form(None),
+    channel: str | None = Form(None),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
     content = await file.read()
-    return ok(resume_service.upload(file.filename or "resume", content, db, operator_id=user.id, job_id=job_id))
+    return ok(
+        resume_service.upload(
+            file.filename or "resume", content, db, operator_id=user.id, job_id=job_id, channel=channel
+        )
+    )
 
 
 @router.post("/{resume_id}/analyze")

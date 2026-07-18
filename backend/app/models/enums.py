@@ -20,3 +20,13 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
     Role.INTERVIEWER: {"interview"},
     Role.ADMIN: {"job", "resume", "interview", "analytics", "user", "audit", "dictionary"},
 }
+
+
+class Channel(StrEnum):
+    """招聘渠道来源。对应 PRD F4 渠道效果分析。"""
+
+    INTERNAL_REFERRAL = "INTERNAL_REFERRAL"  # 内推
+    CAMPUS = "CAMPUS"                        # 校招
+    JOB_BOARD = "JOB_BOARD"                  # 招聘网站/社招
+    HEADHUNTER = "HEADHUNTER"                # 猎头
+    OTHER = "OTHER"                          # 其他/未分类

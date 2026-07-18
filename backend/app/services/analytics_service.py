@@ -1,8 +1,4 @@
-"""招聘数据分析服务。对应 F4 / T8。
-
-说明：当前数据模型未落地"渠道"字段（招聘渠道来源），渠道效果为占位实现——
-按目标岗位分组统计简历量/评估量作为近似替代，后续引入 channel 字段后替换为真实统计。
-"""
+"""招聘数据分析服务。对应 F4 / T8。"""
 from datetime import date, timedelta
 
 from sqlalchemy import func
@@ -82,8 +78,8 @@ def get_overview(db: Session, start: date | None = None, end: date | None = None
     # 招聘周期：简历上传 -> 首次面试评价完成 的平均天数（仅统计已评价的简历）
     cycle_days = _avg_recruitment_cycle_days(db, resume_ids)
 
-    # 渠道效果（占位）：按目标岗位分组的简历量与推荐量
-    channel_effectiveness = _channel_effectiveness_placeholder(db, resume_ids)
+    # 渠道效果：按招聘渠道分组的简历量与推荐量/推荐率
+    channel_effectiveness = _channel_effectiveness(db, resume_ids)
 
     return {
         "recruitment_cycle_days": cycle_days,
@@ -116,15 +112,31 @@ def _avg_recruitment_cycle_days(db: Session, resume_ids: list[int]) -> float | N
     return round(sum(deltas) / len(deltas), 2)
 
 
-def _channel_effectiveness_placeholder(db: Session, resume_ids: list[int]) -> dict:
-    """渠道字段未落地前的占位实现：按目标岗位分组统计。"""
+def _channel_effectiveness(db: Session, resume_ids: list[int]) -> dict:
+    """按招聘渠道统计简历量与推荐量/推荐率。对应 PRD F4 渠道效果分析。"""
     if not resume_ids:
         return {}
-    rows = (
-        db.query(Job.title, func.count(Resume.id))
-        .join(Resume, Resume.job_id == Job.id)
+    upload_rows = (
+        db.query(Resume.channel, func.count(Resume.id))
         .filter(Resume.id.in_(resume_ids))
-        .group_by(Job.title)
+        .group_by(Resume.channel)
         .all()
     )
-    return {title: count for title, count in rows}
+    recommended_rows = (
+        db.query(Resume.channel, func.count(InterviewEval.id))
+        .join(Interview, Interview.resume_id == Resume.id)
+        .join(InterviewEval, InterviewEval.interview_id == Interview.id)
+        .filter(Resume.id.in_(resume_ids), InterviewEval.recommendation == "推荐")
+        .group_by(Resume.channel)
+        .all()
+    )
+    recommended_map = dict(recommended_rows)
+    result = {}
+    for channel, uploaded in upload_rows:
+        recommended = recommended_map.get(channel, 0)
+        result[channel] = {
+            "uploaded": uploaded,
+            "recommended": recommended,
+            "recommended_rate": round(recommended / uploaded, 4) if uploaded else 0.0,
+        }
+    return result

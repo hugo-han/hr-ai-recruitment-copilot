@@ -21,6 +21,7 @@ class Resume(Base):
     parsed_data: Mapped[dict | None] = mapped_column(_json_type, nullable=True)  # 结构化解析结果（敏感字段脱敏）
     status: Mapped[str] = mapped_column(String(16), default="pending")  # pending/interview/hired/rejected
     job_id: Mapped[int | None] = mapped_column(ForeignKey("job.id", ondelete="SET NULL"), index=True)
+    channel: Mapped[str] = mapped_column(String(32), default="OTHER", index=True)  # 招聘渠道来源，见 Channel 枚举
     # 永久保留：retention_until 默认 NULL（不过期）；删除为人工显式触发
     retention_until: Mapped[date | None] = mapped_column(Date, nullable=True)
     deleted: Mapped[bool] = mapped_column(Integer, default=0)  # 软删除标记（仍保留，符合永久保留+审计）

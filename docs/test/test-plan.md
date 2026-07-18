@@ -3,7 +3,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目名称 | hr-ai-recruitment-copilot |
-| 文档版本 | v1.3 |
+| 文档版本 | v1.4 |
 | 编写角色 | QA Agent |
 | 编写日期 | 2026-07-18 |
 | 输入依据 | docs/product/PRD.md ｜ docs/architecture/system-design.md ｜ docs/development/mvp-development-plan.md |

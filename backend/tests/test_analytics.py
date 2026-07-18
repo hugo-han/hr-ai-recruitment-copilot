@@ -112,6 +112,55 @@ def test_overview_api_allows_hr_lead(client, db_session):
     assert resp.json()["code"] == 0
 
 
+def test_overview_channel_effectiveness(db_session):
+    """按渠道统计简历量与推荐率（TC-601 扩展：渠道效果）。"""
+    _seed_user(db_session, "lead_t8_4")
+    req = JobDraftRequest(title="Java工程师", level="P5", business_req="")
+    job_service.draft_job(req, db_session, operator_id=1, orchestrator=_job_orch(db_session))
+    job = db_session.query(Job).first()
+
+    up1 = resume_service.upload(
+        "cv1.txt", "Java 5年经验".encode(), db_session, operator_id=1, job_id=job.id,
+        channel="INTERNAL_REFERRAL",
+    )
+    resume_service.analyze(up1["resume_id"], job.id, db_session, operator_id=1, orchestrator=_resume_orch(db_session))
+    iv1 = interview_service.create_record(
+        InterviewCreateRequest(resume_id=up1["resume_id"], job_id=job.id, record_text="面试记录1"),
+        db_session, operator_id=1,
+    )["interview_id"]
+    interview_service.evaluate(iv1, db_session, operator_id=1, orchestrator=_eval_orch(db_session, "推荐"))
+
+    up2 = resume_service.upload(
+        "cv2.txt", "Python 3年经验".encode(), db_session, operator_id=1, job_id=job.id,
+        channel="JOB_BOARD",
+    )
+    resume_service.analyze(up2["resume_id"], job.id, db_session, operator_id=1, orchestrator=_resume_orch(db_session, score=60))
+    iv2 = interview_service.create_record(
+        InterviewCreateRequest(resume_id=up2["resume_id"], job_id=job.id, record_text="面试记录2"),
+        db_session, operator_id=1,
+    )["interview_id"]
+    interview_service.evaluate(iv2, db_session, operator_id=1, orchestrator=_eval_orch(db_session, "不推荐"))
+
+    result = analytics_service.get_overview(db_session)
+    ce = result["channel_effectiveness"]
+    assert ce["INTERNAL_REFERRAL"]["uploaded"] == 1
+    assert ce["INTERNAL_REFERRAL"]["recommended"] == 1
+    assert ce["INTERNAL_REFERRAL"]["recommended_rate"] == 1.0
+    assert ce["JOB_BOARD"]["uploaded"] == 1
+    assert ce["JOB_BOARD"]["recommended"] == 0
+    assert ce["JOB_BOARD"]["recommended_rate"] == 0.0
+
+
+def test_upload_invalid_channel_falls_back_to_other(db_session):
+    """非法渠道值兜底为 OTHER，不报错。"""
+    from app.models.resume import Resume
+
+    _seed_user(db_session, "lead_t8_5")
+    resume_service.upload("cv.txt", b"x", db_session, operator_id=1, channel="NOT_A_REAL_CHANNEL")
+    resume = db_session.query(Resume).first()
+    assert resume.channel == "OTHER"
+
+
 def test_overview_performance(db_session):
     """性能 ≤5s（TC-603）。"""
     import time

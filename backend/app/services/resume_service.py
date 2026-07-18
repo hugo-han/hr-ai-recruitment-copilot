@@ -6,17 +6,27 @@ from app.ai.prompt_manager import get_prompt
 from app.common.redact import mask_sensitive
 from app.common.response import AppError
 from app.common.storage import gen_key, get_storage
+from app.models.enums import Channel
 from app.models.job import Job
 from app.models.resume import Resume, ResumeMatchResult
 
 ALLOWED_EXT = {".pdf", ".docx", ".doc", ".txt"}
 
 
-def upload(file_name: str, content: bytes, db: Session, operator_id: int, job_id: int | None = None) -> dict:
+def upload(
+    file_name: str,
+    content: bytes,
+    db: Session,
+    operator_id: int,
+    job_id: int | None = None,
+    channel: str | None = None,
+) -> dict:
     """上传简历：存对象存储 + 建 resume 记录（永久保留，retention_until 留空）。"""
     ext = "." + file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
     if ext not in ALLOWED_EXT:
         raise AppError(code=400, message=f"不支持的文件类型: {ext}", status_code=400)
+
+    channel_value = channel if channel in {c.value for c in Channel} else Channel.OTHER.value
 
     key = gen_key(file_name)
     ref = get_storage().put(key, content)
@@ -27,13 +37,14 @@ def upload(file_name: str, content: bytes, db: Session, operator_id: int, job_id
         parsed_data=None,
         status="pending",
         job_id=job_id,
+        channel=channel_value,
         retention_until=None,  # 永久保留
         created_by=operator_id,
     )
     db.add(resume)
     db.commit()
     db.refresh(resume)
-    return {"resume_id": resume.id, "file_ref": ref}
+    return {"resume_id": resume.id, "file_ref": ref, "channel": resume.channel}
 
 
 def _parse_resume(content: bytes, file_name: str) -> dict:
@@ -143,6 +154,7 @@ def list_resumes(db: Session, sort_by_score: bool = False) -> list[dict]:
             "file_name": r.file_name,
             "status": r.status,
             "job_id": r.job_id,
+            "channel": r.channel,
             "match_score": score,
         })
     if sort_by_score:
