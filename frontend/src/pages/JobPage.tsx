@@ -122,7 +122,7 @@ export default function JobPage() {
               <Title level={5}>版本历史</Title>
               {versions.map((v) => (
                 <Tag key={v.version_no as number} color={v.source === "AI" ? "green" : "orange"}>
-                  v{v.version_no as number} ({v.source})
+                  v{String(v.version_no)} ({String(v.source)})
                 </Tag>
               ))}
             </>

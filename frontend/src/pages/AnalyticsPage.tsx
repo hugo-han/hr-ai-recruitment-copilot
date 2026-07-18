@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, Typography, Statistic, Row, Col, Table, Tag, DatePicker, Space, message } from "antd";
 import { getOverview, AnalyticsOverview } from "../api/analytics";
-import dayjs from "dayjs";
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;

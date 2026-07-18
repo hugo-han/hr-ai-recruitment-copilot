@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Card, Typography, Button, Input, Form, Descriptions, Tag, Space, message } from "antd";
+import { Card, Button, Input, Form, Descriptions, Tag, Space, Typography, message } from "antd";
 import { createInterview, evaluateInterview, InterviewEvalResult } from "../api/interview";
 
-const { Title, TextArea } = Input;
+const { TextArea } = Input;
+const { Title } = Typography;
 
 const REC_COLORS: Record<string, string> = { "推荐": "green", "待定": "orange", "不推荐": "red" };
 

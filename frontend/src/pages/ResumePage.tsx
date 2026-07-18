@@ -100,7 +100,7 @@ export default function ResumePage() {
             <Select.Option value={2}>岗位 2</Select.Option>
             <Select.Option value={3}>岗位 3</Select.Option>
           </Select>
-          <Upload beforeUpload={() => false} onChange={(info) => onUpload({ file: info.file as File })} showUploadList={false}>
+          <Upload beforeUpload={() => false} onChange={(info) => onUpload({ file: info.file as unknown as File })} showUploadList={false}>
             <Button icon={<UploadOutlined />}>上传简历</Button>
           </Upload>
         </Space>
