@@ -172,3 +172,92 @@ def test_list_sort_by_score(db_session):
     items = resume_service.list_resumes(db_session, sort_by_score=True)
     scores = [it["match_score"] for it in items if it["match_score"] is not None]
     assert scores == sorted(scores, reverse=True)
+
+
+# ── RBAC 接口层测试 (TC-908) ──────────────────────────────────────────────
+
+
+def _api_login(client, db_session, username, role, password="x"):
+    """创建用户 → 登录 → 返回 access_token。"""
+    db_session.add(User(
+        username=username, password_hash=hash_password(password),
+        name=username, role=role,
+    ))
+    db_session.commit()
+    resp = client.post("/api/auth/login", json={"username": username, "password": password})
+    assert resp.status_code == 200
+    return resp.json()["data"]["access_token"]
+
+
+def _seed_resume_via_service(db_session):
+    """通过 service 层创建一份简历（会实际写入 LocalObjectStorage，export 可读）。"""
+    _seed_user(db_session, "rbac_owner")
+    return resume_service.upload("cv.txt", b"test content", db_session, operator_id=1)
+
+
+# ── DELETE RBAC ──
+
+
+def test_rbac_delete_interviewer_403(client, db_session):
+    token = _api_login(client, db_session, "rbac_del_int", Role.INTERVIEWER)
+    resp = client.delete("/api/resumes/1", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 403
+
+
+def test_rbac_delete_hr_403(client, db_session):
+    token = _api_login(client, db_session, "rbac_del_hr", Role.HR)
+    resp = client.delete("/api/resumes/1", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 403
+
+
+def test_rbac_delete_hr_lead_200(client, db_session):
+    token = _api_login(client, db_session, "rbac_del_lead", Role.HR_LEAD)
+    up = _seed_resume_via_service(db_session)
+    resp = client.delete(f"/api/resumes/{up['resume_id']}", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 0
+
+
+def test_rbac_delete_admin_200(client, db_session):
+    token = _api_login(client, db_session, "rbac_del_admin", Role.ADMIN)
+    up = _seed_resume_via_service(db_session)
+    resp = client.delete(f"/api/resumes/{up['resume_id']}", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 0
+
+
+def test_rbac_delete_no_token_401(client, db_session):
+    _seed_resume_via_service(db_session)
+    resp = client.delete("/api/resumes/1")
+    assert resp.status_code == 401
+
+
+# ── EXPORT RBAC ──
+
+
+def test_rbac_export_interviewer_403(client, db_session):
+    token = _api_login(client, db_session, "rbac_exp_int", Role.INTERVIEWER)
+    resp = client.get("/api/resumes/1/export", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 403
+
+
+def test_rbac_export_hr_403(client, db_session):
+    token = _api_login(client, db_session, "rbac_exp_hr", Role.HR)
+    resp = client.get("/api/resumes/1/export", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 403
+
+
+def test_rbac_export_hr_lead_200(client, db_session):
+    token = _api_login(client, db_session, "rbac_exp_lead", Role.HR_LEAD)
+    up = _seed_resume_via_service(db_session)
+    resp = client.get(f"/api/resumes/{up['resume_id']}/export", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 0
+
+
+def test_rbac_export_admin_200(client, db_session):
+    token = _api_login(client, db_session, "rbac_exp_admin", Role.ADMIN)
+    up = _seed_resume_via_service(db_session)
+    resp = client.get(f"/api/resumes/{up['resume_id']}/export", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 0

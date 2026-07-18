@@ -3,9 +3,10 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.common.auth import get_current_user
+from app.common.auth import get_current_user, require_roles
 from app.common.response import ok
 from app.db import get_db
+from app.models.enums import Role
 from app.models.user import User
 from app.schemas.resume import ResumeAnalyzeRequest
 from app.services import resume_service
@@ -48,13 +49,13 @@ def list_(sort: str | None = None, db: Session = Depends(get_db),
 
 @router.delete("/{resume_id}")
 def delete(resume_id: int, db: Session = Depends(get_db),
-           user: User = Depends(get_current_user)) -> dict:
+           user: User = Depends(require_roles(Role.HR_LEAD, Role.ADMIN))) -> dict:
     return ok(resume_service.delete_resume(resume_id, db, operator_id=user.id))
 
 
 @router.get("/{resume_id}/export")
 def export(resume_id: int, db: Session = Depends(get_db),
-           user: User = Depends(get_current_user)) -> dict:
+           user: User = Depends(require_roles(Role.HR_LEAD, Role.ADMIN))) -> dict:
     return ok(resume_service.export_resume(resume_id, db))
 
 
