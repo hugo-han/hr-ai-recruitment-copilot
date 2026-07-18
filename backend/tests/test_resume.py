@@ -135,6 +135,31 @@ def test_delete_resume_soft(db_session):
     # 永久保留：记录仍在，文件未物理删除
 
 
+def test_delete_resume_writes_audit(db_session):
+    """删除操作写入 AuditLog。对应 Issue #8 / TC-702。"""
+    from app.models.audit_log import AuditLog
+
+    _seed_user(db_session, "hr_t5_7b")
+    up = resume_service.upload("cv.txt", b"x", db_session, operator_id=1)
+    resume_service.delete_resume(up["resume_id"], db_session, operator_id=1)
+    logs = db_session.query(AuditLog).filter_by(action="delete", resource_type="resume", resource_id=up["resume_id"]).all()
+    assert len(logs) == 1
+    assert logs[0].detail["file_name"] == "cv.txt"
+
+
+def test_transition_writes_audit(db_session):
+    """状态流转写入 AuditLog。对应 Issue #8。"""
+    from app.models.audit_log import AuditLog
+
+    _seed_user(db_session, "hr_t5_7c")
+    up = resume_service.upload("cv.txt", b"x", db_session, operator_id=1)
+    resume_service.transition_status(up["resume_id"], "interview", db_session, operator_id=1)
+    logs = db_session.query(AuditLog).filter_by(action="status_transition", resource_type="resume", resource_id=up["resume_id"]).all()
+    assert len(logs) == 1
+    assert logs[0].detail["old_status"] == "pending"
+    assert logs[0].detail["new_status"] == "interview"
+
+
 def test_delete_resume_twice_conflict(db_session):
     import pytest
 

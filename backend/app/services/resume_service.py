@@ -181,7 +181,7 @@ def list_resumes(db: Session, sort_by_score: bool = False) -> list[dict]:
 
 
 def delete_resume(resume_id: int, db: Session, operator_id: int) -> dict:
-    """人工显式删除：软删除记录（永久保留原则下不物理删除文件，仅标记并写审计式备注）。
+    """人工显式删除：软删除记录（永久保留原则下不物理删除文件，仅标记并写审计）。
 
     生产可按合规要求决定是否清空对象存储；MVP 保留文件并软删除，确保可审计。
     """
@@ -193,6 +193,15 @@ def delete_resume(resume_id: int, db: Session, operator_id: int) -> dict:
     resume.deleted = 1
     resume.status = "deleted"
     db.commit()
+    from app.services.audit_service import write_audit
+    write_audit(
+        db,
+        action="delete",
+        resource_type="resume",
+        resource_id=resume_id,
+        operator_id=operator_id,
+        detail={"file_name": resume.file_name},
+    )
     return {"resume_id": resume_id, "deleted": True, "operator_id": operator_id}
 
 
@@ -236,6 +245,15 @@ def transition_status(resume_id: int, target_status: str, db: Session, operator_
     old_status = resume.status
     resume.status = target_status
     db.commit()
+    from app.services.audit_service import write_audit
+    write_audit(
+        db,
+        action="status_transition",
+        resource_type="resume",
+        resource_id=resume_id,
+        operator_id=operator_id,
+        detail={"old_status": old_status, "new_status": target_status},
+    )
     return {
         "resume_id": resume_id,
         "old_status": old_status,
