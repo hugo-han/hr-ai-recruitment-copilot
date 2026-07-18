@@ -155,6 +155,38 @@ def test_export_resume(db_session):
     assert bytes.fromhex(res["content_b64"]) == b"my resume content"
 
 
+def test_export_resume_writes_audit(db_session):
+    """导出操作写入 AuditLog。对应 TC-705。"""
+    from app.models.audit_log import AuditLog
+
+    _seed_user(db_session, "hr_t5_14")
+    up = resume_service.upload("cv.txt", b"content", db_session, operator_id=1)
+    res = resume_service.export_resume_with_audit(up["resume_id"], db_session, operator_id=1)
+    assert res["resume_id"] == up["resume_id"]
+    logs = db_session.query(AuditLog).filter_by(action="export", resource_type="resume", resource_id=up["resume_id"]).all()
+    assert len(logs) == 1
+    assert logs[0].operator_id == 1
+
+
+def test_export_api_writes_audit(client, db_session):
+    """API 导出操作写入 AuditLog。"""
+    from app.models.audit_log import AuditLog
+
+    # export 需要 HR_LEAD 或 ADMIN 角色
+    db_session.add(User(username="hr_t5_15", password_hash=hash_password("x"), name="hr_lead", role=Role.HR_LEAD))
+    db_session.commit()
+    up = resume_service.upload("cv.txt", b"test export audit", db_session, operator_id=1)
+
+    resp = client.post("/api/auth/login", json={"username": "hr_t5_15", "password": "x"})
+    token = resp.json()["data"]["access_token"]
+
+    resp = client.get(f"/api/resumes/{up['resume_id']}/export", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+
+    logs = db_session.query(AuditLog).filter_by(action="export", resource_type="resume", resource_id=up["resume_id"]).all()
+    assert len(logs) == 1
+
+
 def test_list_sort_by_score(db_session):
     _seed_user(db_session, "hr_t5_10")
     job = _seed_job(db_session)

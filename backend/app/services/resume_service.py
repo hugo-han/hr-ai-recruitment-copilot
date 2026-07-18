@@ -210,6 +210,22 @@ def export_resume(resume_id: int, db: Session) -> dict:
     }
 
 
+def export_resume_with_audit(resume_id: int, db: Session, operator_id: int) -> dict:
+    """导出简历 + 写审计日志。"""
+    result = export_resume(resume_id, db)
+    from app.services.audit_service import write_audit
+
+    write_audit(
+        db,
+        action="export",
+        resource_type="resume",
+        resource_id=resume_id,
+        operator_id=operator_id,
+        detail={"file_name": result["file_name"], "size": result["size"]},
+    )
+    return result
+
+
 def transition_status(resume_id: int, target_status: str, db: Session, operator_id: int) -> dict:
     """候选人状态流转：pending → interview → hired / rejected。对应 F5.3 / US-07。"""
     resume = db.get(Resume, resume_id)

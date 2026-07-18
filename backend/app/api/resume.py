@@ -60,7 +60,8 @@ def delete(resume_id: int, db: Session = Depends(get_db),
 @router.get("/{resume_id}/export")
 def export(resume_id: int, db: Session = Depends(get_db),
            user: User = Depends(require_roles(Role.HR_LEAD, Role.ADMIN))) -> dict:
-    return ok(resume_service.export_resume(resume_id, db))
+    """导出简历 + 写审计日志。对应 TC-705。"""
+    return ok(resume_service.export_resume_with_audit(resume_id, db, operator_id=user.id))
 
 
 @router.post("/batch-analyze")
