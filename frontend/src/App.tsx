@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Layout, Menu, Button, Typography, Spin, theme } from "antd";
+import { Layout, Menu, Button, Typography, Spin, Result, theme } from "antd";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "./store/auth";
 import { getMe } from "./api/auth";
@@ -13,12 +13,39 @@ const { Header, Content, Sider } = Layout;
 
 type MenuKey = "/jobs" | "/resumes" | "/interviews" | "/analytics";
 
-const menuItems: { key: MenuKey; label: string }[] = [
-  { key: "/jobs", label: "AI 职位助手" },
-  { key: "/resumes", label: "AI 简历分析" },
+// 角色 → 可见菜单（对齐后端 ROLE_PERMISSIONS）。Fix: Issue #4
+const ROLE_MENUS: Record<string, MenuKey[]> = {
+  HR:          ["/jobs", "/resumes", "/interviews"],
+  HR_LEAD:     ["/jobs", "/resumes", "/interviews", "/analytics"],
+  INTERVIEWER: ["/interviews"],
+  ADMIN:       ["/jobs", "/resumes", "/interviews", "/analytics"],
+};
+
+const ALL_MENU_ITEMS: { key: MenuKey; label: string }[] = [
+  { key: "/jobs",       label: "AI 职位助手" },
+  { key: "/resumes",    label: "AI 简历分析" },
   { key: "/interviews", label: "AI 面试助手" },
-  { key: "/analytics", label: "数据分析" },
+  { key: "/analytics",  label: "数据分析" },
 ];
+
+export function getVisibleMenus(role: string): { key: MenuKey; label: string }[] {
+  const allowed = ROLE_MENUS[role] ?? ["/jobs", "/resumes", "/interviews"];
+  return ALL_MENU_ITEMS.filter((m) => allowed.includes(m.key));
+}
+
+function RequirePermission({ role, path, children }: { role: string; path: MenuKey; children: JSX.Element }) {
+  const allowed = ROLE_MENUS[role] ?? ["/jobs", "/resumes", "/interviews"];
+  if (!allowed.includes(path)) {
+    return (
+      <Result
+        status="403"
+        title="403"
+        subTitle="您的角色无权访问此功能"
+      />
+    );
+  }
+  return children;
+}
 
 function ProtectedLayout() {
   const { token, role, name, setAuth, logout } = useAuthStore();
@@ -42,7 +69,8 @@ function ProtectedLayout() {
   if (!token) return <Navigate to="/login" replace />;
   if (verifying) return <Spin size="large" style={{ display: "block", margin: "200px auto" }} />;
 
-  const selectedKey = (menuItems.find((m) => location.pathname.startsWith(m.key))?.key || "/jobs") as MenuKey;
+  const visibleMenus = getVisibleMenus(role);
+  const selectedKey = (visibleMenus.find((m) => location.pathname.startsWith(m.key))?.key || visibleMenus[0]?.key || "/jobs") as MenuKey;
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -53,7 +81,7 @@ function ProtectedLayout() {
         <Menu
           theme="dark"
           selectedKeys={[selectedKey]}
-          items={menuItems}
+          items={visibleMenus}
           onClick={({ key }) => navigate(key)}
         />
       </Sider>
@@ -85,12 +113,12 @@ function ProtectedLayout() {
         </Header>
         <Content style={{ margin: "24px 16px", padding: 24, background: colorBgContainer, borderRadius: 8 }}>
           <Routes>
-            <Route path="/" element={<Navigate to="/jobs" replace />} />
-            <Route path="/jobs" element={<JobPage />} />
-            <Route path="/resumes" element={<ResumePage />} />
-            <Route path="/interviews" element={<InterviewPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="*" element={<Navigate to="/jobs" replace />} />
+            <Route path="/" element={<Navigate to={visibleMenus[0]?.key ?? "/jobs"} replace />} />
+            <Route path="/jobs"       element={<RequirePermission role={role} path="/jobs"><JobPage /></RequirePermission>} />
+            <Route path="/resumes"    element={<RequirePermission role={role} path="/resumes"><ResumePage /></RequirePermission>} />
+            <Route path="/interviews" element={<RequirePermission role={role} path="/interviews"><InterviewPage /></RequirePermission>} />
+            <Route path="/analytics"  element={<RequirePermission role={role} path="/analytics"><AnalyticsPage /></RequirePermission>} />
+            <Route path="*" element={<Navigate to={visibleMenus[0]?.key ?? "/jobs"} replace />} />
           </Routes>
         </Content>
       </Layout>

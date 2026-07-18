@@ -3,7 +3,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目名称 | hr-ai-recruitment-copilot |
-| 文档版本 | v1.8 |
+| 文档版本 | v2.0 |
 | 编写角色 | QA Agent |
 | 编写日期 | 2026-07-18 |
 | 输入依据 | docs/product/PRD.md ｜ docs/architecture/system-design.md ｜ docs/development/mvp-development-plan.md |
@@ -19,6 +19,7 @@
 > - v1.6（2026-07-18）巡检 #16：开发提交 `3bfbaa8`（fix: 补齐各接口角色门禁 + API 层 RBAC 测试），job draft / interview create&eval / resume upload&analyze&batch-analyze 全部补齐 `require_roles` 门禁；新增 5 个 API 层 RBAC 测试；前端 API 模块（analytics/auth/interview/job/resume）就位；前端页面（Login/Job/Resume/Interview/Analytics）+ 状态管理待提交（6 个 untracked）。测试 81 passed，ruff clean。
 > - v1.7（2026-07-18）巡检 #21：开发连续提交 `a4fcd8d`（一键启动脚本 + MockClient 默认响应 + 迁移修复 + seed 数据）+ `69412e5`（动态能力维度 + 岗位模板复用 JD 生成），后端功能增强无新增模块。测试 81 passed，ruff clean。
 > - v1.8（2026-07-18）巡检 #22：开发提交 `c7dd423`（Docker Compose 生产部署 + 前端测试体系），新增 `entrypoint.sh`、docker-compose 生产编排、前端 vitest 测试体系（6 测试文件，11 passed + 4 skipped）。后端 81 passed + 前端 11 passed；ruff clean。
+> - v2.0（2026-07-18）巡检 #24：开发提交 `ead1cac`（fix: 补 ResumePage 重复 import）及 HEAD `42bf73e`（fix: 导出操作写审计日志 — 新建 audit_log 表 + audit_service，TC-705 修复）；app 49→51，测试 87→89 passed。**Issue #4 已建**（前端菜单硬编码 HR 可见 analytics 但无权限）；新增前端 UX 专项测试 `App.menu.test.tsx`，4 个 TC-FE-MENU-* 用例：3 个 FAIL（复现 Issue #4 缺陷）、1 个 PASS。TC-705 导出审计 ✅ 已修复落地。
 
 ---
 
