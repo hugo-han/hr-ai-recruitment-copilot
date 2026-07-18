@@ -1,0 +1,7 @@
+local_dev.db
+.obs-local/
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
