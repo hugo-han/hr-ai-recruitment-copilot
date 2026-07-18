@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, Button, Input, Form, Descriptions, Tag, Space, Typography, message } from "antd";
+import { Card, Typography, Button, Input, Form, Descriptions, Tag, Space, message } from "antd";
 import { createInterview, evaluateInterview, InterviewEvalResult } from "../api/interview";
 
 const { TextArea } = Input;
@@ -8,12 +8,13 @@ const { Title } = Typography;
 const REC_COLORS: Record<string, string> = { "推荐": "green", "待定": "orange", "不推荐": "red" };
 
 export default function InterviewPage() {
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [evaluating, setEvaluating] = useState(false);
   const [interviewId, setInterviewId] = useState<number | null>(null);
   const [result, setResult] = useState<InterviewEvalResult | null>(null);
 
-  const onCreate = async (values: { record_text: string; resume_id?: string; job_id?: string }) => {
-    setLoading(true);
+  const onSave = async (values: { record_text: string; resume_id?: string; job_id?: string }) => {
+    setSaving(true);
     setResult(null);
     try {
       const data = await createInterview({
@@ -22,25 +23,36 @@ export default function InterviewPage() {
         job_id: values.job_id ? Number(values.job_id) : undefined,
       });
       setInterviewId(data.interview_id);
-      message.success("面试记录已保存");
+      message.success(`面试记录已保存（ID: ${data.interview_id}）`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      message.error(err?.message || "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-      // 自动触发评价
-      const evalData = await evaluateInterview(data.interview_id);
+  const onEvaluate = async () => {
+    if (!interviewId) return;
+    setEvaluating(true);
+    try {
+      const evalData = await evaluateInterview(interviewId);
       setResult(evalData);
       message.success("面试评价已完成");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      message.error(err?.message || "操作失败");
+      message.error(err?.message || "评价失败");
     } finally {
-      setLoading(false);
+      setEvaluating(false);
     }
   };
 
   return (
     <div>
       <Title level={3}>AI 面试助手</Title>
+
       <Card style={{ marginBottom: 16 }}>
-        <Form onFinish={onCreate} initialValues={{ record_text: "" }}>
+        <Form onFinish={onSave} initialValues={{ record_text: "" }}>
           <Form.Item name="resume_id" label="简历 ID">
             <Input placeholder="选填" style={{ width: 120 }} />
           </Form.Item>
@@ -50,9 +62,18 @@ export default function InterviewPage() {
           <Form.Item name="record_text" label="面试记录" rules={[{ required: true, message: "请输入面试记录" }]}>
             <TextArea rows={6} placeholder="输入面试过程中的问答记录、行为观察等" />
           </Form.Item>
-          <Button type="primary" htmlType="submit" loading={loading}>
-            提交并评价
-          </Button>
+          <Space>
+            <Button type="primary" htmlType="submit" loading={saving}>
+              保存记录
+            </Button>
+            <Button
+              disabled={!interviewId}
+              loading={evaluating}
+              onClick={onEvaluate}
+            >
+              {interviewId ? `生成评价（#${interviewId}）` : "生成评价（先保存记录）"}
+            </Button>
+          </Space>
         </Form>
       </Card>
 
