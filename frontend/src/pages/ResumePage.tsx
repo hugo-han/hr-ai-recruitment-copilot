@@ -1,9 +1,25 @@
 import { useState, useEffect, useCallback } from "react";
-import { Card, Typography, Upload, Button, Table, Tag, Space, Select, message } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
-import { uploadResume, analyzeResume, listResumes, deleteResume, exportResume, AnalyzeResult, ResumeListItem } from "../api/resume";
+import { Card, Typography, Upload, Button, Table, Tag, Space, Select, Dropdown, message } from "antd";
+import { UploadOutlined, DownOutlined } from "@ant-design/icons";
+import { uploadResume, analyzeResume, listResumes, deleteResume, exportResume, transitionStatus, AnalyzeResult, ResumeListItem } from "../api/resume";
 
 const { Title, Text } = Typography;
+
+// 状态机：允许的流转目标（对齐后端 ALLOWED_TRANSITIONS）
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  pending:   ["interview", "rejected"],
+  interview: ["hired", "rejected"],
+  hired:     [],
+  rejected:  [],
+};
+
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  pending:   { label: "待筛选", color: "default" },
+  interview: { label: "面试", color: "blue" },
+  hired:     { label: "录用", color: "green" },
+  rejected:  { label: "淘汰", color: "red" },
+  deleted:   { label: "已删除", color: "gray" },
+};
 
 export default function ResumePage() {
   const [resumes, setResumes] = useState<ResumeListItem[]>([]);
@@ -72,20 +88,55 @@ export default function ResumePage() {
     }
   };
 
+  const onTransition = async (resumeId: number, targetStatus: string) => {
+    try {
+      await transitionStatus(resumeId, targetStatus);
+      message.success(`状态已更新为 ${STATUS_LABELS[targetStatus]?.label ?? targetStatus}`);
+      refresh();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      message.error(err?.message || "状态流转失败");
+    }
+  };
+
   const columns = [
     { title: "ID", dataIndex: "id", width: 60 },
     { title: "文件名", dataIndex: "file_name" },
-    { title: "状态", dataIndex: "status", render: (s: string) => <Tag>{s}</Tag> },
+    {
+      title: "状态", dataIndex: "status",
+      render: (s: string) => {
+        const meta = STATUS_LABELS[s] ?? { label: s, color: "default" };
+        return <Tag color={meta.color}>{meta.label}</Tag>;
+      },
+    },
     { title: "渠道", dataIndex: "channel", render: (c: string) => <Tag color="geekblue">{c}</Tag> },
     { title: "匹配评分", dataIndex: "match_score", render: (s: number | null) => s != null ? <Tag color={s >= 70 ? "green" : s >= 40 ? "orange" : "red"}>{s}</Tag> : "-" },
     {
-      title: "操作", render: (_: unknown, record: ResumeListItem) => (
-        <Space>
-          <Button size="small" loading={analyzing === record.id} onClick={() => onAnalyze(record.id)}>评分</Button>
-          <Button size="small" danger onClick={() => onDelete(record.id)}>删除</Button>
-          <Button size="small" onClick={() => onExport(record.id)}>导出</Button>
-        </Space>
-      ),
+      title: "操作", render: (_: unknown, record: ResumeListItem) => {
+        const targets = ALLOWED_TRANSITIONS[record.status] ?? [];
+        return (
+          <Space>
+            <Button size="small" loading={analyzing === record.id} onClick={() => onAnalyze(record.id)}>评分</Button>
+            {targets.length > 0 && (
+              <Dropdown
+                menu={{
+                  items: targets.map((t) => ({
+                    key: t,
+                    label: STATUS_LABELS[t]?.label ?? t,
+                    onClick: () => onTransition(record.id, t),
+                  })),
+                }}
+              >
+                <Button size="small">
+                  推进状态 <DownOutlined />
+                </Button>
+              </Dropdown>
+            )}
+            <Button size="small" danger onClick={() => onDelete(record.id)}>删除</Button>
+            <Button size="small" onClick={() => onExport(record.id)}>导出</Button>
+          </Space>
+        );
+      },
     },
   ];
 

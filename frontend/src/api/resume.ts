@@ -50,6 +50,11 @@ export async function deleteResume(resumeId: number) {
   return resp.data;
 }
 
+export async function transitionStatus(resumeId: number, targetStatus: string) {
+  const resp = await api.put(`/resumes/${resumeId}/status`, { target_status: targetStatus });
+  return resp.data;
+}
+
 export async function exportResume(resumeId: number) {
   const resp = await api.get<{ content_b64: string; file_name: string; size: number }>(`/resumes/${resumeId}/export`);
   return resp.data;

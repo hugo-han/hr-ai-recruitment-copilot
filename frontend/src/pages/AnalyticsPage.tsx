@@ -37,6 +37,7 @@ export default function AnalyticsPage() {
     { stage: "已面试", count: cr.interviewed || 0, rate: cr.interviewed_rate || 0 },
     { stage: "已评价", count: cr.evaluated || 0, rate: cr.evaluated_rate || 0 },
     { stage: "推荐", count: cr.recommended || 0, rate: cr.recommended_rate || 0 },
+    { stage: "录用", count: (cr as Record<string, number>).hired || 0, rate: (cr as Record<string, number>).hired_rate || 0 },
   ];
 
   const channelData = Object.entries(data?.channel_effectiveness || {}).map(([ch, val]) => ({

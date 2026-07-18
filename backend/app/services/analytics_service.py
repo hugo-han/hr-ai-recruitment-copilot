@@ -60,6 +60,14 @@ def get_overview(db: Session, start: date | None = None, end: date | None = None
         else 0
     )
 
+    hired_count = (
+        db.query(Resume)
+        .filter(Resume.id.in_(resume_ids), Resume.status == "hired")
+        .count()
+        if resume_ids
+        else 0
+    )
+
     def _rate(n: int) -> float:
         return round(n / total_resumes, 4) if total_resumes else 0.0
 
@@ -73,6 +81,8 @@ def get_overview(db: Session, start: date | None = None, end: date | None = None
         "evaluated_rate": _rate(evaluated_count),
         "recommended": recommended_count,
         "recommended_rate": _rate(recommended_count),
+        "hired": hired_count,
+        "hired_rate": _rate(hired_count),
     }
 
     # 招聘周期：简历上传 -> 首次面试评价完成 的平均天数（仅统计已评价的简历）
