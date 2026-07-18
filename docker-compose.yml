@@ -1,25 +1,33 @@
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
     environment:
       - APP_ENV=prod
       - APP_DEBUG=false
-      - APP_SECRET_KEY=${APP_SECRET_KEY:-change-me}
+      - APP_SECRET_KEY=${APP_SECRET_KEY:-change-me-in-prod}
       - DATABASE_URL=postgresql+psycopg2://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/hr_copilot
       - REDIS_URL=redis://redis:6379/0
-      - LLM_PROVIDER=${LLM_PROVIDER:-mock}
+      - LLM_PROVIDER=mock
+      - LLM_MODEL=mock-llm
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     ports:
       - "8000:8000"
+    restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     depends_on:
       - backend
     ports:
       - "8080:80"
+    restart: unless-stopped
 
   db:
     image: postgres:16-alpine
@@ -30,11 +38,23 @@ services:
       - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
   db-data:

@@ -55,7 +55,7 @@ export default function LoginPage() {
             <Input.Password prefix={<LockOutlined />} placeholder="密码" />
           </Form.Item>
           <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block>
+            <Button type="primary" htmlType="submit" loading={loading} block aria-label="登录">
               登录
             </Button>
           </Form.Item>
