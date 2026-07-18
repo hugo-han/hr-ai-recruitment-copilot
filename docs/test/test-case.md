@@ -3,7 +3,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目名称 | hr-ai-recruitment-copilot |
-| 文档版本 | v1.3 |
+| 文档版本 | v1.4 |
 | 编写角色 | QA Agent |
 | 编写日期 | 2026-07-18 |
 | 输入依据 | docs/test/test-plan.md、docs/product/PRD.md、docs/architecture/system-design.md、docs/development/mvp-development-plan.md |
@@ -208,7 +208,7 @@
 | M4 集成 | TC-801~803 | ⏳ 待补 E2E 串联用例（三助手闭环） |
 | M5 AI 评测 | TC-302/303/405/407/408/503/504 | ⏳ 待黄金评测集就绪（Mock 已可断言结构/依据，真实模型待盘古） |
 | M6 验收 | AC-US-01~08 | ⏳ 发布前 |
-| T8 数据分析（P1） | TC-601~605 | ⏳ 接口未交付 |
+| T8 数据分析（P1） | TC-601~605 | ✅ 巡检 #14：test_analytics.py 6 passed（空数据/漏斗/时间筛选/RBAC 403/HR_LEAD 200/性能 ≤5s）；commit 206c196 |
 | T9 批量/字典（P1） | TC-411 等 | 🟡 排序已实现（test_list_sort_by_score）；岗位库未交付 |
 
 > 全量后端自动化：**48 passed**（pytest -q，20+ 次复跑稳定）。
@@ -224,7 +224,7 @@
 | TC-410b | resume | /api/resumes/upload 接口层 e2e（multipart） | P0 | API | 待补 |
 | TC-502b | interview | /api/interviews/{id}/evaluate 接口层 e2e | P0 | API | 待补（现有仅 401 校验） |
 | TC-801 | e2e | 三助手闭环串联（job→resume→interview） | P0 | I | 待补 |
-| TC-908 | security | 简历删除/导出 RBAC（应限 HR_LEAD/ADMIN） | P0 | S | 待补（现 delete/export 仅 get_current_user，无角色门禁） |
+| TC-908 | security | 简历删除/导出 RBAC（应限 HR_LEAD/ADMIN） | P0 | S | 🔴 P0 缺陷，GitHub Issue #1（https://github.com/hugo-han/opc-ai-factory-config/issues/1）；待开发修复后补自动化测试 |
 | TC-909 | migration | Alembic init_schema 在 SQLite 升级成功、表齐全 | P0 | F | ✅ 已手工验证（巡检 #2：8 表生成）；建议落 pytest 用例固化 |
 | TC-910 | repo-hygiene | `.obs-local/` 不应入库（应被 .gitignore） | P0 | S | ✅ 已解除（巡检 #3：移出暂存区并补入 `backend/.gitignore`，暂存区 0 文件）；残留：.gitignore 改动 unstaged |
 | TC-911 | config | 生产配置密钥不入库（AK/SK/口令） | P0 | S | ✅ 巡检 #2 检查：暂存区无 .env/.key/.pem；持续监控 |

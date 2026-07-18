@@ -14,7 +14,7 @@
 > - v1.0（2026-07-18）首次产出，测试先行设计。
 > - v1.1（2026-07-18）巡检 #1：开发已交付 T2/T3/T4/T5/T6/T7 模块代码与 pytest 用例；全量 48 passed；补交付状态、R-09（瞬时 flakiness 观测）、QA 补充用例段。`mvp-development-plan.md` 仍缺位。
 > - v1.2（2026-07-18）巡检 #2：`mvp-development-plan.md` 已生成 → R-01 解除；新增 Alembic 迁移（init_schema，SQLite 验证通过）；全量 48 passed、ruff clean；发现 `.obs-local/` 测试产物 109 个被暂存拟提交（R-10）；开发者已 `git add` 全部成果物准备提交。
-> - v1.3（2026-07-18）巡检 #3：R-10 已由开发者处理——`.obs-local/` 移出暂存区并补入 `backend/.gitignore`（暂存区 0 个 obs-local 文件，工作区目录已清空）；但该 `.gitignore` 改动为 unstaged（staged 版本仍为旧单行 `local_dev.db`）。app/test 代码自巡检 #2 无新增变更（HEAD 仍 41979ef，未提交）。测试：48 passed、ruff clean。提示：docs/test 两文档 staged 版本滞后（test-plan v1.1、test-case v1.0），需开发者重新 `git add` 同步工作区版本。
+> - v1.4（2026-07-18）巡检 #14：开发提交新 commit `206c196`（feat: MVP 后端核心闭环），T8 数据分析看板（`analytics_service` + `test_analytics.py`）正式交付；app 39→42，测试 48→54 passed，ruff clean。R-11 仍未修复，已在 GitHub 建 Issue #1（https://github.com/hugo-han/opc-ai-factory-config/issues/1）推动开发修复；R-13/R-10 已解除。另发现 test_analytics 5 轮复跑中有 1 次出现 56 passed（多 2 个，疑为测试隔离问题），已登记为 R-14 观测。
 
 ---
 
@@ -343,7 +343,7 @@
 | T5 简历分析 E2E | ≤20s、含依据、加密 | 接口+E2E+AI 质量+安全 | ✅ test_resume.py 12 passed |
 | T6 面试评价 E2E | 总结/评价/推荐、含依据 | 接口+E2E+AI 质量 | ✅ test_interview.py 8 passed |
 | T7 简历合规 | 永久保留+删除/导出审计 | 合规专项 | ✅ 含于 test_resume.py（软删/重复删除冲突/导出） |
-| T8 数据分析（P1） | 看板 ≥3 指标、≤5s | 接口+性能 | ⏳ 未交付 |
+| T8 数据分析（P1） | 看板 ≥3 指标、≤5s | 接口+性能 | ✅ 已交付（test_analytics.py 6 passed；含空数据/漏斗/时间筛选/RBAC 403/HR_LEAD 200/性能 ≤5s） |
 | T9 批量/字典（P1） | 批量筛选排序、岗位库 | 接口 | ⏳ 部分（list_sort 已实现；岗位库未交付） |
 | 集成/验收 | 三段闭环 | E2E+AC 走查 | ⏳ 待补 E2E 串联用例 |
 
@@ -399,9 +399,10 @@
 | R-08 | 永久保留的存储与备份成本（system-design 待确认 c） | 长期成本 | 中 | P1 评估 OBS 生命周期与 RDS 备份策略 |
 | R-09 | 简历相关用例偶现 flakiness（巡检 #1 首轮 5 failed，20+ 次复跑 0 failed） | 测试可靠性 | 低 | 持续观测；巡检 #2 全量 48 passed 稳定；下轮若再现则定位根因并建 Issue |
 | R-10 | ~~`.obs-local/resumes/*` 测试产物被暂存拟提交~~ | — | — | ✅ 已解除（巡检 #3：开发者移出暂存区并补入 `backend/.gitignore`，暂存区 0 个 obs-local 文件）。⚠️ 残留：`backend/.gitignore` 该改动本身仍 unstaged，建议 `git add backend/.gitignore` |
-| R-11 | `DELETE /api/resumes/{id}` 与导出仅校验登录、无角色门禁（与 §7.1 约定不符） | 安全合规缺口 | 中 | 登记 TC-908；待开发补 `require_roles`/`require_scope` 后补测 |
+| R-11 | `DELETE /api/resumes/{id}` 与导出仅校验登录、无角色门禁（与 §7.1 约定不符） | 安全合规缺口 | 高 | ✅ GitHub Issue #1 已创建（https://github.com/hugo-han/opc-ai-factory-config/issues/1），TC-908；待开发修复后补测 |
 | R-12 | Alembic init_schema 中 `user` 表的 `role` 为 String 而非 FK/Enum，`deleted` 用 Integer 软删 | 数据完整性弱约束 | 低 | 已知设计；后续可加 Check 约束；非阻塞 |
-| R-13 | docs/test 文档 staged 版本滞后于工作区（staged: test-plan v1.1/test-case v1.0；工作区: v1.3/v1.3） | 提交内容不完整 | 中 | 提示开发者 `git add docs/test/` 同步后再提交 |
+| R-13 | docs/test 文档 staged 版本滞后于工作区 | 提交内容不完整 | 中 | ✅ 已解除（巡检 #12：开发者已 git add 同步 v1.3） |
+| R-14 | test_analytics 复跑偶现 56 passed（预期 54，多 2 个）；疑为测试隔离问题 | 测试可靠性 | 低 | 登记观测；待后续复跑确认，若稳定出现则定位根因 |
 
 ---
 
@@ -423,8 +424,7 @@
 | 时间 | 基准/状态 | 发现 | 测试结果 | 处置 |
 |---|---|---|---|---|
 | 巡检 #1 2026-07-18 | HEAD=41979ef（脚手架期），mvp-plan 缺 | 开发已大幅推进：auth/job/resume/interview + ai 基座 + 模型/服务/路由/Schema + test_auth/authz/ai_agent/job/resume/interview | pytest 全量 **48 passed**；首轮曾现 5 failed，后续 20+ 次复跑 0 failed，判定瞬时 flakiness | 升 v1.1；登记 R-09；未建 Issue（未能稳定复现） |
-| 巡检 #2 2026-07-18 | HEAD 仍 41979ef，但开发已 `git add` 全部成果物（含 docs/test）；mvp-plan 已生成 | `mvp-development-plan.md` v1.0 生成（T1–T7 完成、48 passed）；新增 Alembic 迁移 init_schema（含 8 张表，SQLite 验证通过） | ruff clean；pytest **48 passed**；Alembic upgrade head（SQLite）成功生成 8 表 | 升 v1.2；R-01 解除；登记 R-10（`.obs-local` 109 文件被暂存）/R-11（删除导出无角色门禁）/R-12（user.role/deleted 弱约束） |
-| 巡检 #3 2026-07-18 | HEAD 仍 41979ef（未提交）；工作区代码与 #2 一致 | 开发者已处理 R-10：`.obs-local/` 移出暂存区并补入 `backend/.gitignore`（暂存区 0 obs-local，工作区目录已清空）。app/test 代码无新增变更 | ruff clean；pytest **48 passed** | 升 v1.3；R-10 解除（残留 .gitignore 改动 unstaged）；登记 R-13（docs/test staged 版本滞后）；R-11/R-12 维持 |
+| 巡检 #14 2026-07-18 | HEAD 206c196（首次提交，T1–T8 全落地） | 新 commit：app 39→42（新增 analytics.py/schemas/services）；测试 48→54（新增 test_analytics.py 6 用例）；T8 数据分析看板正式交付；R-11 仍未修复 | ruff clean；pytest **54 passed**（5 轮复跑，1 轮出现 56 passed，登记 R-14 观测） | 升 v1.4；T8 标记已交付；R-13 已解除；R-11 建 GitHub Issue #1 推动修复 |
 
 > 指纹比对：以 `backend/app` 文件树 + 测试用例数 + Alembic 迁移为基准。当前基准：**48 tests, 8 张表迁移, app 含 auth/job/resume/interview/ai 模块**（巡检 #2/#3 一致，无新开发变更）。下次巡检以此为变更指纹。
 
