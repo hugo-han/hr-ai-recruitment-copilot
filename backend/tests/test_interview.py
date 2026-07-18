@@ -112,7 +112,7 @@ def test_create_via_api_requires_token(client, db_session):
 
 
 def test_suggest_questions_success(db_session):
-    """基于岗位信息生成面试问题建议。"""
+    """基于岗位信息生成面试问题建议，questions 非空且含 dimension/question 字段。Fix: Issue #7。"""
     from app.models.job import Job
 
     _seed_user(db_session, "iv_t6_7")
@@ -121,12 +121,16 @@ def test_suggest_questions_success(db_session):
     db_session.commit()
     db_session.refresh(job)
 
-    # MockClient 默认响应中包含 "面试" key，suggest_questions 的提示词含 "技能" 关键词
-    # 需要 match 到，所以使用 _eval_orch 的面试响应风格
-    orch = _eval_orch(db_session)
+    # 使用 add_defaults() 的 MockClient，验证「建议」key 匹配到 questions 响应
+    from app.ai.llm_client import MockClient
+    from app.ai.orchestrator import AgentOrchestrator
+    orch = AgentOrchestrator(db_session, client=MockClient().add_defaults())
     result = interview_service.suggest_questions(job.id, db_session, operator_id=1, orchestrator=orch)
     assert result["job_id"] == job.id
-    assert "questions" in result
+    # Fix #7: questions 应非空，且每项包含 dimension 和 question 字段
+    assert len(result["questions"]) > 0, "questions 不应为空"
+    assert "dimension" in result["questions"][0]
+    assert "question" in result["questions"][0]
 
 
 def test_suggest_questions_job_not_found(db_session):

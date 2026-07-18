@@ -164,7 +164,7 @@ class MockClient:
 
     def add_defaults(self) -> "MockClient":
         """补齐默认响应，使 MockClient 在未配置关键词时也能返回符合预期的输出。
-        覆盖 JD 生成 / 简历分析 / 面试评价三个核心场景。
+        覆盖 JD 生成 / 简历分析 / 面试评价 / 面试问题建议四个核心场景。
         """
         defaults: dict[str, Any] = {
             "岗位": {
@@ -188,6 +188,14 @@ class MockClient:
                 "recommendation": "推荐",
                 "rationale": {"专业技能": "符合要求"},
             },
+            "建议": {
+                "questions": [
+                    {"dimension": "专业技能", "question": "请描述你主导过最复杂的技术方案？"},
+                    {"dimension": "沟通表达", "question": "如何向非技术人员解释复杂问题？"},
+                    {"dimension": "解决问题", "question": "描述一次你在压力下快速解决问题的经历？"},
+                ],
+                "rationale": "基于岗位技能要求和能力维度模板生成",
+            },
         }
         for k, v in defaults.items():
             self._responses.setdefault(k, v)
@@ -195,8 +203,9 @@ class MockClient:
 
     @staticmethod
     def _match_key(text: str) -> str:
-        # 顺序敏感：先匹配更具体的关键词，避免简历提示词中的"岗位"误命中岗位模板
-        for kw in ("简历", "面试", "JD", "jd", "岗位"):
+        # 顺序敏感：建议/问题 > 简历 > 面试 > JD > 岗位
+        # Fix Issue #7: suggest_questions 提示词含「建议」，需在「面试」前匹配
+        for kw in ("建议", "简历", "面试", "JD", "jd", "岗位"):
             if kw in text:
                 return kw
         return "_default"
