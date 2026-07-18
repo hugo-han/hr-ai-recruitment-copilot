@@ -3,7 +3,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目名称 | hr-ai-recruitment-copilot |
-| 文档版本 | v1.6 |
+| 文档版本 | v1.8 |
 | 编写角色 | QA Agent |
 | 编写日期 | 2026-07-18 |
 | 输入依据 | docs/product/PRD.md ｜ docs/architecture/system-design.md ｜ docs/development/mvp-development-plan.md |
@@ -17,6 +17,8 @@
 > - v1.4（2026-07-18）巡检 #14：开发提交新 commit `206c196`，T8 数据分析看板正式交付；app 39→42，测试 48→54 passed，ruff clean。R-11 仍未修复，已在 GitHub 建 Issue #1 推动开发修复；R-13/R-10 已解除。
 > - v1.5（2026-07-18）巡检 #15：开发连续提交 `fd7990d`（渠道字段 + 真实渠道统计）与 `bfe5ecb`（字典管理 + 批量异步评分 T9），app 42→49，测试 54→76 passed，ruff clean，5 轮复跑稳定。**R-11 已修复**（`require_roles(Role.HR_LEAD, Role.ADMIN)` 已应用到 delete/export 双路由）；R-14 未见再现。T9 正式标记已交付。
 > - v1.6（2026-07-18）巡检 #16：开发提交 `3bfbaa8`（fix: 补齐各接口角色门禁 + API 层 RBAC 测试），job draft / interview create&eval / resume upload&analyze&batch-analyze 全部补齐 `require_roles` 门禁；新增 5 个 API 层 RBAC 测试；前端 API 模块（analytics/auth/interview/job/resume）就位；前端页面（Login/Job/Resume/Interview/Analytics）+ 状态管理待提交（6 个 untracked）。测试 81 passed，ruff clean。
+> - v1.7（2026-07-18）巡检 #21：开发连续提交 `a4fcd8d`（一键启动脚本 + MockClient 默认响应 + 迁移修复 + seed 数据）+ `69412e5`（动态能力维度 + 岗位模板复用 JD 生成），后端功能增强无新增模块。测试 81 passed，ruff clean。
+> - v1.8（2026-07-18）巡检 #22：开发提交 `c7dd423`（Docker Compose 生产部署 + 前端测试体系），新增 `entrypoint.sh`、docker-compose 生产编排、前端 vitest 测试体系（6 测试文件，11 passed + 4 skipped）。后端 81 passed + 前端 11 passed；ruff clean。
 
 ---
 
@@ -338,7 +340,7 @@
 
 | 阶段 | 开发任务 | 测试准入 | 交付状态（v1.1 巡检） |
 |---|---|---|---|
-| T1 工程脚手架 | 前后端/CI/Docker | 已就绪，回归 health | ✅ test_health.py 2 passed |
+| T1 工程脚手架 | 前后端/CI/Docker | 已就绪，回归 health | ✅ test_health.py 2 passed + vitest 前端 11 passed（巡检 #22） |
 | T2 用户/角色/JWT | 登录与角色可见性 | 单元+接口：鉴权、RBAC、token | ✅ test_auth.py 8 + test_authz.py 2 passed |
 | T3 AI Agent 基座 | Orchestrator/LLMClient/OutputParser + 审计 | 单元+接口：编排、Schema、重试降级、审计 | ✅ test_ai_agent.py 9 passed |
 | T4 JD 生成 E2E | ≤15s、含依据 | 接口+E2E+AI 质量 | ✅ test_job.py 7 passed |

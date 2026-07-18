@@ -108,6 +108,50 @@ def test_create_via_api_requires_token(client, db_session):
     assert resp.status_code == 401
 
 
+# ── F3.5 面试问题建议 ───────────────────────────────────────────────────────
+
+
+def test_suggest_questions_success(db_session):
+    """基于岗位信息生成面试问题建议。"""
+    from app.models.job import Job
+
+    _seed_user(db_session, "iv_t6_7")
+    job = Job(title="Java工程师", level="P5", business_req="后端开发", status="draft", created_by=1)
+    db_session.add(job)
+    db_session.commit()
+    db_session.refresh(job)
+
+    # MockClient 默认响应中包含 "面试" key，suggest_questions 的提示词含 "技能" 关键词
+    # 需要 match 到，所以使用 _eval_orch 的面试响应风格
+    orch = _eval_orch(db_session)
+    result = interview_service.suggest_questions(job.id, db_session, operator_id=1, orchestrator=orch)
+    assert result["job_id"] == job.id
+    assert "questions" in result
+
+
+def test_suggest_questions_job_not_found(db_session):
+    _seed_user(db_session, "iv_t6_8")
+    with pytest.raises(AppError):
+        interview_service.suggest_questions(9999, db_session, operator_id=1)
+
+
+def test_suggest_questions_api(client, db_session):
+    from app.models.job import Job
+
+    db_session.add(User(username="iv_t6_9", password_hash=hash_password("x"), name="iv_t6_9", role=Role.INTERVIEWER))
+    db_session.commit()
+    resp = client.post("/api/auth/login", json={"username": "iv_t6_9", "password": "x"})
+    token = resp.json()["data"]["access_token"]
+
+    job = Job(title="产品经理", level="P6", business_req="", status="draft", created_by=1)
+    db_session.add(job)
+    db_session.commit()
+
+    resp = client.get(f"/api/interviews/suggest-questions/{job.id}", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    assert resp.json()["data"]["job_id"] == job.id
+
+
 # ── RBAC 接口层测试 ────────────────────────────────────────────────────────
 
 

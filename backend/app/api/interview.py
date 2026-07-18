@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.common.auth import require_roles
+from app.common.auth import get_current_user, require_roles
 from app.common.response import ok
 from app.db import get_db
 from app.models.enums import Role
@@ -23,3 +23,10 @@ def create(req: InterviewCreateRequest, db: Session = Depends(get_db),
 def evaluate(interview_id: int, db: Session = Depends(get_db),
              user: User = Depends(require_roles(Role.INTERVIEWER, Role.HR, Role.HR_LEAD, Role.ADMIN))) -> dict:
     return ok(interview_service.evaluate(interview_id, db, operator_id=user.id))
+
+
+@router.get("/suggest-questions/{job_id}")
+def suggest_questions(job_id: int, db: Session = Depends(get_db),
+                      user: User = Depends(get_current_user)) -> dict:
+    """基于岗位生成面试问题建议。对应 F3.5 / US-05。"""
+    return ok(interview_service.suggest_questions(job_id, db, operator_id=user.id))

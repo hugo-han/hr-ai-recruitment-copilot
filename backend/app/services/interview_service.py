@@ -91,3 +91,32 @@ def evaluate(interview_id: int, db: Session, operator_id: int,
         "recommendation": ev.recommendation,
         "rationale": ev.rationale,
     }
+
+
+def suggest_questions(job_id: int, db: Session, operator_id: int,
+                     orchestrator: AgentOrchestrator | None = None) -> dict:
+    """基于岗位信息与能力维度生成面试问题建议。对应 F3.5 / US-05。"""
+    from app.models.job import Job
+
+    job = db.get(Job, job_id)
+    if not job:
+        raise AppError(code=404, message="岗位不存在", status_code=404)
+
+    dims = _get_competency_dims(db)
+
+    orch = orchestrator or AgentOrchestrator(db)
+    ctx = AgentContext(agent_type="InterviewAgent", operator_id=operator_id, prompt_name="suggest_questions")
+    prompt = get_prompt("suggest_questions")
+    user_message = prompt.user_template.format(
+        job_profile=str(job.job_profile or {}),
+        skill_requirements=str(job.skill_requirements or []),
+        competency_template=",".join(dims),
+    )
+    result = orch.invoke(ctx, user_message, schema={"type": "object"})
+
+    questions = result.get("questions") or []
+    return {
+        "job_id": job_id,
+        "questions": questions,
+        "rationale": result.get("rationale", ""),
+    }

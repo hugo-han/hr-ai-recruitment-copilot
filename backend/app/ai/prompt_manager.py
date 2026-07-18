@@ -59,10 +59,27 @@ INTERVIEW_EVAL_PROMPT = PromptTemplate(
 )
 
 
+# ===== 面试助手（问题建议）=====
+SUGGEST_QUESTIONS_PROMPT = PromptTemplate(
+    name="suggest_questions",
+    version="v1",
+    system=(
+        "你是资深面试官。根据岗位信息与能力维度模板，生成针对性面试问题建议。"
+        "必须返回 JSON，包含 questions(list of {dimension, question})、rationale。"
+        "每个维度至少 1 个问题，总数建议 5-10 个。"
+    ),
+    user_template=(
+        "岗位画像：{job_profile}\n技能要求：{skill_requirements}\n能力维度：{competency_template}\n"
+        "请生成面试问题建议。"
+    ),
+)
+
+
 REGISTRY: dict[str, PromptTemplate] = {
     "job_draft": JOB_DRAFT_PROMPT,
     "resume_analyze": RESUME_ANALYZE_PROMPT,
     "interview_eval": INTERVIEW_EVAL_PROMPT,
+    "suggest_questions": SUGGEST_QUESTIONS_PROMPT,
 }
 
 

@@ -174,6 +174,53 @@ def test_list_sort_by_score(db_session):
     assert scores == sorted(scores, reverse=True)
 
 
+# ── F5.3 候选人状态流转 ────────────────────────────────────────────────────
+
+
+def test_transition_pending_to_interview(db_session):
+    _seed_user(db_session, "hr_t5_11")
+    up = resume_service.upload("cv.txt", b"x", db_session, operator_id=1)
+    result = resume_service.transition_status(up["resume_id"], "interview", db_session, operator_id=1)
+    assert result["old_status"] == "pending"
+    assert result["new_status"] == "interview"
+
+
+def test_transition_invalid_jump(db_session):
+    import pytest
+
+    from app.common.response import AppError
+
+    _seed_user(db_session, "hr_t5_12")
+    up = resume_service.upload("cv.txt", b"x", db_session, operator_id=1)
+    with pytest.raises(AppError):
+        resume_service.transition_status(up["resume_id"], "hired", db_session, operator_id=1)
+
+
+def test_transition_api(client, db_session):
+    _seed_user(db_session, "hr_t5_13")
+    up = resume_service.upload("cv.txt", b"x", db_session, operator_id=1)
+
+    resp = client.post("/api/auth/login", json={"username": "hr_t5_13", "password": "x"})
+    token = resp.json()["data"]["access_token"]
+
+    resp = client.put(
+        f"/api/resumes/{up['resume_id']}/status",
+        json={"target_status": "interview"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["new_status"] == "interview"
+
+    # 非法跳转：pending → hired（跳过 interview）
+    up2 = resume_service.upload("cv2.txt", b"y", db_session, operator_id=1)
+    resp = client.put(
+        f"/api/resumes/{up2['resume_id']}/status",
+        json={"target_status": "hired"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 409
+
+
 # ── RBAC 接口层测试 (TC-908) ──────────────────────────────────────────────
 
 

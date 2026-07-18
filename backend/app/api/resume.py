@@ -1,4 +1,4 @@
-"""简历路由。对应 F2 / T5 / T7 / T9。"""
+"""简历路由。对应 F2 / T5 / T7 / T9 / F5.3。"""
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -17,6 +17,10 @@ router = APIRouter(prefix="/resumes", tags=["resume"])
 class BatchAnalyzeRequest(BaseModel):
     resume_ids: list[int]
     job_id: int
+
+
+class TransitionRequest(BaseModel):
+    target_status: str
 
 
 @router.post("/upload")
@@ -81,3 +85,10 @@ def task_status(task_id: str, _: User = Depends(get_current_user)) -> dict:
         "status": result.status,
         "result": result.result if result.ready() else None,
     })
+
+
+@router.put("/{resume_id}/status")
+def transition(resume_id: int, req: TransitionRequest, db: Session = Depends(get_db),
+               user: User = Depends(require_roles(Role.HR, Role.HR_LEAD, Role.ADMIN))) -> dict:
+    """候选人状态流转：pending → interview → hired / rejected。对应 F5.3 / US-07。"""
+    return ok(resume_service.transition_status(resume_id, req.target_status, db, operator_id=user.id))

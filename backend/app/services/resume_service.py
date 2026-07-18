@@ -12,6 +12,24 @@ from app.models.resume import Resume, ResumeMatchResult
 
 ALLOWED_EXT = {".pdf", ".docx", ".doc", ".txt"}
 
+# 候选人状态机：允许的流转
+ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+    "pending": {"interview", "rejected"},
+    "interview": {"hired", "rejected"},
+    "hired": set(),
+    "rejected": set(),
+}
+
+
+def _validate_transition(current: str, target: str) -> None:
+    allowed = ALLOWED_TRANSITIONS.get(current, set())
+    if target not in allowed:
+        raise AppError(
+            code=409,
+            message=f"状态流转非法：{current} → {target}",
+            status_code=409,
+        )
+
 
 def upload(
     file_name: str,
@@ -189,4 +207,22 @@ def export_resume(resume_id: int, db: Session) -> dict:
         "file_name": resume.file_name,
         "content_b64": content.hex(),  # 简化：返回十六进制，前端解码下载
         "size": len(content),
+    }
+
+
+def transition_status(resume_id: int, target_status: str, db: Session, operator_id: int) -> dict:
+    """候选人状态流转：pending → interview → hired / rejected。对应 F5.3 / US-07。"""
+    resume = db.get(Resume, resume_id)
+    if not resume or resume.deleted:
+        raise AppError(code=404, message="简历不存在", status_code=404)
+
+    _validate_transition(resume.status, target_status)
+    old_status = resume.status
+    resume.status = target_status
+    db.commit()
+    return {
+        "resume_id": resume_id,
+        "old_status": old_status,
+        "new_status": target_status,
+        "operator_id": operator_id,
     }

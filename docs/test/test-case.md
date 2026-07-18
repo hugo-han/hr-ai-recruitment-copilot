@@ -3,7 +3,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目名称 | hr-ai-recruitment-copilot |
-| 文档版本 | v1.6 |
+| 文档版本 | v1.8 |
 | 编写角色 | QA Agent |
 | 编写日期 | 2026-07-18 |
 | 输入依据 | docs/test/test-plan.md、docs/product/PRD.md、docs/architecture/system-design.md、docs/development/mvp-development-plan.md |
@@ -26,6 +26,8 @@
 | TC-003 | CI | 后端 lint 通过 | 安装依赖 | `ruff check app tests` | 退出码 0 | P1 | F |
 | TC-004 | CI | 后端单测通过 | 安装依赖 | `pytest -q` | 全部通过 | P0 | F |
 | TC-005 | CI | 前端构建通过 | `npm ci` | `npm run build` | 产物 dist 生成 | P0 | F |
+| TC-006 | CI | 前端冒烟测试 | `npm ci` | `npx vitest run` | 6 测试文件全部通过（≥11 passed） | P0 | F |
+| TC-007 | deploy | Docker Compose 生产编排就绪 | docker | `docker-compose up -d --build` | 后端 8000 + 前端 80 可访问 | P1 | F |
 
 ---
 

@@ -30,3 +30,7 @@ class Channel(StrEnum):
     JOB_BOARD = "JOB_BOARD"                  # 招聘网站/社招
     HEADHUNTER = "HEADHUNTER"                # 猎头
     OTHER = "OTHER"                          # 其他/未分类
+
+
+# 候选人简历状态
+RESUME_STATUSES = {"pending", "interview", "hired", "rejected"}
