@@ -3,7 +3,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目名称 | hr-ai-recruitment-copilot |
-| 文档版本 | v1.5 |
+| 文档版本 | v1.6 |
 | 编写角色 | QA Agent |
 | 编写日期 | 2026-07-18 |
 | 输入依据 | docs/product/PRD.md ｜ docs/architecture/system-design.md ｜ docs/development/mvp-development-plan.md |
@@ -16,6 +16,7 @@
 > - v1.2（2026-07-18）巡检 #2：`mvp-development-plan.md` 已生成 → R-01 解除；新增 Alembic 迁移（init_schema，SQLite 验证通过）；全量 48 passed、ruff clean；发现 `.obs-local/` 测试产物 109 个被暂存拟提交（R-10）；开发者已 `git add` 全部成果物准备提交。
 > - v1.4（2026-07-18）巡检 #14：开发提交新 commit `206c196`，T8 数据分析看板正式交付；app 39→42，测试 48→54 passed，ruff clean。R-11 仍未修复，已在 GitHub 建 Issue #1 推动开发修复；R-13/R-10 已解除。
 > - v1.5（2026-07-18）巡检 #15：开发连续提交 `fd7990d`（渠道字段 + 真实渠道统计）与 `bfe5ecb`（字典管理 + 批量异步评分 T9），app 42→49，测试 54→76 passed，ruff clean，5 轮复跑稳定。**R-11 已修复**（`require_roles(Role.HR_LEAD, Role.ADMIN)` 已应用到 delete/export 双路由）；R-14 未见再现。T9 正式标记已交付。
+> - v1.6（2026-07-18）巡检 #16：开发提交 `3bfbaa8`（fix: 补齐各接口角色门禁 + API 层 RBAC 测试），job draft / interview create&eval / resume upload&analyze&batch-analyze 全部补齐 `require_roles` 门禁；新增 5 个 API 层 RBAC 测试；前端 API 模块（analytics/auth/interview/job/resume）就位；前端页面（Login/Job/Resume/Interview/Analytics）+ 状态管理待提交（6 个 untracked）。测试 81 passed，ruff clean。
 
 ---
 
@@ -235,7 +236,7 @@
 | POST /api/resumes/{id}/analyze | 简历匹配评分 | HR+ | P0 |
 | GET /api/resumes | 简历列表（按评分排序） | HR+ | P0/P1 |
 | DELETE /api/resumes/{id} | 删除简历（人工触发+审计） | HR_LEAD/ADMIN | P0 |
-| GET /api/resumes/{id}/export | 导出（可携带） | HR+ | P0 |
+| GET /api/resumes/{id}/export | 导出（可携带） | HR_LEAD/ADMIN | P0 |
 | POST /api/interviews | 录入面试记录 | INTERVIEWER+ | P0 |
 | POST /api/interviews/{id}/evaluate | 面试评价 | INTERVIEWER+ | P0 |
 | GET /api/audit/ai-calls | AI 调用审计查询 | ADMIN | P0 |

@@ -3,7 +3,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目名称 | hr-ai-recruitment-copilot |
-| 文档版本 | v1.5 |
+| 文档版本 | v1.6 |
 | 编写角色 | QA Agent |
 | 编写日期 | 2026-07-18 |
 | 输入依据 | docs/test/test-plan.md、docs/product/PRD.md、docs/architecture/system-design.md、docs/development/mvp-development-plan.md |
@@ -220,11 +220,11 @@
 | 编号 | 模块 | 场景 | 优先级 | 类型 | 状态（v1.2） |
 |---|---|---|---|---|---|
 | TC-219 | audit | GET /api/audit/ai-calls 接口未实现 | P0 | API | 待开发交付后补测 |
-| TC-308b | job | JD 生成接口层（/api/jobs/draft）成功路径 e2e | P0 | API | 待补（现有 test_job 多走 service 层） |
+| TC-308b | job | JD 生成接口层（/api/jobs/draft）成功路径 e2e | P0 | API | ✅ 已补（巡检 #16：test_job.py 新增 `test_draft_via_api_forbidden` / `test_draft_via_api_and_get` RBAC + 接口层） |
 | TC-410b | resume | /api/resumes/upload 接口层 e2e（multipart） | P0 | API | 待补 |
 | TC-502b | interview | /api/interviews/{id}/evaluate 接口层 e2e | P0 | API | 待补（现有仅 401 校验） |
 | TC-801 | e2e | 三助手闭环串联（job→resume→interview） | P0 | I | 待补 |
-| TC-908 | security | 简历删除/导出 RBAC（应限 HR_LEAD/ADMIN） | P0 | S | ✅ R-11 已修复（commit bfe5ecb，resume.py:52/58 已加 require_roles）；GitHub Issue #1 已关闭；自动化回归用例待补 |
+| TC-908 | security | 简历删除/导出 RBAC（应限 HR_LEAD/ADMIN） | P0 | S | ✅ 已修复（commit `aa4099f`/`3bfbaa8`）；**TC-908 已落地**（巡检 #16：`test_resume.py` 新增 9 个 API 层 RBAC 403/200 断言）；GitHub Issue #1 已关闭 |
 | TC-909 | migration | Alembic init_schema 在 SQLite 升级成功、表齐全 | P0 | F | ✅ 已手工验证（巡检 #2：8 表生成）；建议落 pytest 用例固化 |
 | TC-910 | repo-hygiene | `.obs-local/` 不应入库（应被 .gitignore） | P0 | S | ✅ 已解除（巡检 #3：移出暂存区并补入 `backend/.gitignore`，暂存区 0 文件）；残留：.gitignore 改动 unstaged |
 | TC-911 | config | 生产配置密钥不入库（AK/SK/口令） | P0 | S | ✅ 巡检 #2 检查：暂存区无 .env/.key/.pem；持续监控 |
