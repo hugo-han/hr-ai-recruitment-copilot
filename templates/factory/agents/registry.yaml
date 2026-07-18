@@ -1,0 +1,105 @@
+﻿# OPC AI Factory Agent Registry
+
+version: 1.0.0
+
+
+agents:
+
+
+  product:
+
+    name: product-agent
+
+    role: Product Manager
+
+    description:
+      负责需求分析和产品设计
+
+    prompt:
+      agents/product-agent.md
+
+    input:
+      - business_requirement
+
+    output:
+      - product_requirement_document
+
+
+
+  architect:
+
+    name: architect-agent
+
+    role: Solution Architect
+
+    description:
+      负责系统架构设计
+
+    prompt:
+      agents/architect-agent.md
+
+    input:
+      - product_requirement_document
+
+    output:
+      - architecture_document
+
+
+
+  developer:
+
+    name: developer-agent
+
+    role: Software Developer
+
+    description:
+      负责代码实现
+
+    prompt:
+      agents/developer-agent.md
+
+    input:
+      - architecture_document
+
+    output:
+      - source_code
+
+
+
+  qa:
+
+    name: qa-agent
+
+    role: QA Engineer
+
+    description:
+      负责质量验证
+
+    prompt:
+      agents/qa-agent.md
+
+    input:
+      - source_code
+
+    output:
+      - test_report
+
+
+
+  release:
+
+    name: release-agent
+
+    role: Release Manager
+
+    description:
+      负责发布管理
+
+    prompt:
+      agents/release-agent.md
+
+    input:
+      - test_report
+
+    output:
+      - release_result
