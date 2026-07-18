@@ -1,18 +1,48 @@
-"""岗位与 JD 服务：生成 JD、保存版本。对应 F1 / T4。"""
+"""岗位与 JD 服务：生成 JD、保存版本。对应 F1 / T4。
+
+JD 生成时可注入 orchestrator（测试用），默认由 AgentOrchestrator 自动 get_llm_client。
+由岗位模板库匹配同名等级模板以提升生成质量。
+"""
 from sqlalchemy.orm import Session
 
 from app.ai.orchestrator import AgentContext, AgentOrchestrator
 from app.ai.prompt_manager import get_prompt
+from app.common.response import AppError
+from app.models.dictionary import PositionTemplate
 from app.models.job import JdVersion, Job
 
 
+def _find_position_template(title: str, level: str, db: Session) -> PositionTemplate | None:
+    from sqlalchemy import select
+
+    return db.scalar(
+        select(PositionTemplate).where(
+            PositionTemplate.title == title,
+            PositionTemplate.level == level,
+            PositionTemplate.status == "active",
+        )
+    )
+
+
 def draft_job(req, db: Session, operator_id: int, orchestrator: AgentOrchestrator | None = None) -> dict:
-    """AI 生成 JD：创建 job + 落 jd_version(source=AI) + 写审计。"""
     orch = orchestrator or AgentOrchestrator(db)
     ctx = AgentContext(agent_type="JobAgent", operator_id=operator_id, prompt_name="job_draft")
     prompt = get_prompt("job_draft")
+
+    business_req = req.business_req
+    template = _find_position_template(req.title, req.level, db)
+    if template:
+        if template.job_profile and not business_req:
+            profile_keys = ", ".join(str(k) for k in template.job_profile)
+            business_req = f"参考岗位画像关键要素：{profile_keys}"
+        if template.skill_requirements:
+            skills = template.skill_requirements
+            skill_list = skills.get("items", skills) if isinstance(skills, dict) else (skills if isinstance(skills, list) else [])
+            if skill_list:
+                business_req += f"；建议技能方向：{', '.join(skill_list)}"
+
     user_message = prompt.user_template.format(
-        title=req.title, level=req.level, business_req=req.business_req
+        title=req.title, level=req.level, business_req=business_req
     )
 
     result = orch.invoke(ctx, user_message, schema={"type": "object"})
@@ -53,16 +83,11 @@ def draft_job(req, db: Session, operator_id: int, orchestrator: AgentOrchestrato
 
 
 def save_human_version(job_id: int, req, db: Session, operator_id: int) -> dict:
-    """人工编辑后保存为新版本（source=HUMAN）。"""
     job = db.get(Job, job_id)
     if not job:
-        from app.common.response import AppError
-
         raise AppError(code=404, message="岗位不存在", status_code=404)
 
-    next_no = (
-        db.query(JdVersion).filter(JdVersion.job_id == job_id).count() + 1
-    )
+    next_no = db.query(JdVersion).filter(JdVersion.job_id == job_id).count() + 1
     version = JdVersion(
         job_id=job_id,
         version_no=next_no,

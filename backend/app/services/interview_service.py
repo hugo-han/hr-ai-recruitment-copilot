@@ -1,4 +1,7 @@
-"""面试服务：录入记录、生成评价。对应 F3 / T6。"""
+"""面试服务：录入记录、生成评价。对应 F3 / T6。
+
+能力维度模板优先从数据库 CompetencyTemplate（is_default=True）读取，回退到内置 COMPETENCY_TEMPLATE。
+"""
 from sqlalchemy.orm import Session
 
 from app.ai.orchestrator import AgentContext, AgentOrchestrator
@@ -7,6 +10,25 @@ from app.common.response import AppError
 from app.models.interview import COMPETENCY_TEMPLATE, Interview, InterviewEval
 
 VALID_RECOMMENDATIONS = {"推荐", "待定", "不推荐"}
+
+
+def _get_competency_dims(db: Session) -> list[str]:
+    """优先读取数据库默认 CompetencyTemplate，回退到内置常量。"""
+    from sqlalchemy import select
+
+    from app.models.dictionary import CompetencyTemplate
+
+    ct = db.scalar(
+        select(CompetencyTemplate).where(
+            CompetencyTemplate.is_default == True,  # noqa: E712
+            CompetencyTemplate.status == "active",
+        )
+    )
+    if ct and ct.dimensions:
+        dims = ct.dimensions
+        if isinstance(dims, dict) and "items" in dims:
+            return [d["name"] if isinstance(d, dict) else str(d) for d in dims["items"]]
+    return list(COMPETENCY_TEMPLATE)
 
 
 def create_record(req, db: Session, operator_id: int) -> dict:
@@ -29,11 +51,13 @@ def evaluate(interview_id: int, db: Session, operator_id: int,
     if not interview:
         raise AppError(code=404, message="面试记录不存在", status_code=404)
 
+    dims = _get_competency_dims(db)
+
     orch = orchestrator or AgentOrchestrator(db)
     ctx = AgentContext(agent_type="InterviewAgent", operator_id=operator_id, prompt_name="interview_eval")
     prompt = get_prompt("interview_eval")
     user_message = prompt.user_template.format(
-        competency_template=",".join(COMPETENCY_TEMPLATE),
+        competency_template=",".join(dims),
         record_text=interview.record_text,
     )
     result = orch.invoke(ctx, user_message, schema={"type": "object"})
@@ -45,7 +69,7 @@ def evaluate(interview_id: int, db: Session, operator_id: int,
     # 校验能力维度覆盖
     cap_eval = result.get("capability_eval") or {}
     if isinstance(cap_eval, dict) and cap_eval:
-        missing_dims = [d for d in COMPETENCY_TEMPLATE if d not in cap_eval]
+        missing_dims = [d for d in dims if d not in cap_eval]
         if missing_dims:
             raise AppError(code=502, message=f"能力评价缺少维度：{missing_dims}", status_code=502)
 
