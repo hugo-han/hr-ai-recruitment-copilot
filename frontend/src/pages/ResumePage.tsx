@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, Typography, Upload, Button, Table, Tag, Space, Select, Dropdown, message } from "antd";
 import { UploadOutlined, DownOutlined } from "@ant-design/icons";
 import { uploadResume, analyzeResume, listResumes, deleteResume, exportResume, transitionStatus, AnalyzeResult, ResumeListItem } from "../api/resume";
+import { listJobs, JobListItem } from "../api/job";
 
 const { Title, Text } = Typography;
 
@@ -23,6 +24,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 
 export default function ResumePage() {
   const [resumes, setResumes] = useState<ResumeListItem[]>([]);
+  const [jobs, setJobs] = useState<JobListItem[]>([]);
   const [analyzing, setAnalyzing] = useState<number | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null);
   const [jobId, setJobId] = useState<number | undefined>();
@@ -34,7 +36,11 @@ export default function ResumePage() {
     } catch { /* ignore */ }
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+    // 动态加载已生成的岗位列表，替换硬编码选项（Issue #19）
+    listJobs().then(setJobs).catch(() => setJobs([]));
+  }, [refresh]);
 
   const onUpload = async (info: { file: File }) => {
     try {
@@ -146,10 +152,16 @@ export default function ResumePage() {
       <Card style={{ marginBottom: 16 }}>
         <Space>
           <span>目标岗位 ID：</span>
-          <Select style={{ width: 120 }} placeholder="岗位ID" value={jobId} onChange={(v) => setJobId(v)}>
-            <Select.Option value={1}>岗位 1</Select.Option>
-            <Select.Option value={2}>岗位 2</Select.Option>
-            <Select.Option value={3}>岗位 3</Select.Option>
+          <Select
+            style={{ width: 200 }}
+            placeholder={jobs.length === 0 ? "暂无岗位，请先生成岗位" : "选择目标岗位"}
+            value={jobId}
+            onChange={(v) => setJobId(v)}
+            notFoundContent="暂无岗位，请先在 AI 职位助手生成岗位"
+          >
+            {jobs.map((j) => (
+              <Select.Option key={j.id} value={j.id}>{j.title}（{j.level}）</Select.Option>
+            ))}
           </Select>
           <Upload beforeUpload={() => false} onChange={(info) => onUpload({ file: info.file as unknown as File })} showUploadList={false}>
             <Button icon={<UploadOutlined />}>上传简历</Button>

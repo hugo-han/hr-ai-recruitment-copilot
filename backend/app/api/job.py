@@ -13,6 +13,12 @@ from app.services import job_service
 router = APIRouter(prefix="/jobs", tags=["job"])
 
 
+@router.get("")
+def list_jobs(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
+    """获取岗位列表（id + title + level + status）。供前端岗位选择器使用。Issue #18/#19。"""
+    return ok(job_service.list_jobs(db))
+
+
 @router.post("/draft")
 def draft(req: JobDraftRequest, db: Session = Depends(get_db),
           user: User = Depends(require_roles(Role.HR, Role.HR_LEAD, Role.ADMIN))) -> dict:

@@ -113,6 +113,14 @@ def list_versions(job_id: int, db: Session) -> list[dict]:
     ]
 
 
+def list_jobs(db: Session) -> list[dict]:
+    """返回所有非关闭岗位的简要信息，供前端岗位选择器使用。Issue #18/#19。"""
+    from sqlalchemy import select
+
+    rows = db.scalars(select(Job).where(Job.status != "closed").order_by(Job.created_at.desc()))
+    return [{"id": r.id, "title": r.title, "level": r.level, "status": r.status} for r in rows]
+
+
 def get_job(job_id: int, db: Session) -> dict | None:
     job = db.get(Job, job_id)
     if not job:
